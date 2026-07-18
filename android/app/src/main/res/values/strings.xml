@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">koyoyomi</string>
+    <string name="title_activity_main">koyoyomi</string>
+    <string name="package_name">com.awasay.koyoyomi</string>
+    <string name="custom_url_scheme">com.awasay.koyoyomi</string>
+</resources>
