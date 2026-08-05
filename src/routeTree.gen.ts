@@ -13,11 +13,12 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/about'
 import { Route as AuthenticatedBacklogRouteImport } from './routes/_authenticated/backlog'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedShoppingRouteImport } from './routes/_authenticated/shopping'
 import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedSettingsPrayer_timesRouteImport } from './routes/_authenticated/settings/prayer_times'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -36,11 +37,6 @@ const AuthenticatedAboutRoute = AuthenticatedAboutRouteImport.update({
 const AuthenticatedBacklogRoute = AuthenticatedBacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedShoppingRoute = AuthenticatedShoppingRouteImport.update({
@@ -63,38 +59,53 @@ const AuthRegisterRoute = AuthRegisterRouteImport.update({
   path: '/auth/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsPrayer_timesRoute =
+  AuthenticatedSettingsPrayer_timesRouteImport.update({
+    id: '/settings/prayer_times',
+    path: '/settings/prayer_times',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/about': typeof AuthenticatedAboutRoute
   '/backlog': typeof AuthenticatedBacklogRoute
-  '/settings': typeof AuthenticatedSettingsRoute
   '/shopping': typeof AuthenticatedShoppingRoute
   '/today': typeof AuthenticatedTodayRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AuthenticatedAboutRoute
   '/backlog': typeof AuthenticatedBacklogRoute
-  '/settings': typeof AuthenticatedSettingsRoute
   '/shopping': typeof AuthenticatedShoppingRoute
   '/today': typeof AuthenticatedTodayRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof AuthenticatedIndexRoute
+  '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/about': typeof AuthenticatedAboutRoute
   '/_authenticated/backlog': typeof AuthenticatedBacklogRoute
-  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/shopping': typeof AuthenticatedShoppingRoute
   '/_authenticated/today': typeof AuthenticatedTodayRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -102,32 +113,35 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/backlog'
-    | '/settings'
     | '/shopping'
     | '/today'
     | '/auth/login'
     | '/auth/register'
+    | '/settings/prayer_times'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
     | '/backlog'
-    | '/settings'
     | '/shopping'
     | '/today'
     | '/auth/login'
     | '/auth/register'
     | '/'
+    | '/settings/prayer_times'
+    | '/settings'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_authenticated/about'
     | '/_authenticated/backlog'
-    | '/_authenticated/settings'
     | '/_authenticated/shopping'
     | '/_authenticated/today'
     | '/auth/login'
     | '/auth/register'
     | '/_authenticated/'
+    | '/_authenticated/settings/prayer_times'
+    | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -166,13 +180,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBacklogRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/shopping': {
       id: '/_authenticated/shopping'
       path: '/shopping'
@@ -201,25 +208,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/prayer_times': {
+      id: '/_authenticated/settings/prayer_times'
+      path: '/settings/prayer_times'
+      fullPath: '/settings/prayer_times'
+      preLoaderRoute: typeof AuthenticatedSettingsPrayer_timesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAboutRoute: typeof AuthenticatedAboutRoute
   AuthenticatedBacklogRoute: typeof AuthenticatedBacklogRoute
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedShoppingRoute: typeof AuthenticatedShoppingRoute
   AuthenticatedTodayRoute: typeof AuthenticatedTodayRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedSettingsPrayer_timesRoute: typeof AuthenticatedSettingsPrayer_timesRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAboutRoute: AuthenticatedAboutRoute,
   AuthenticatedBacklogRoute: AuthenticatedBacklogRoute,
-  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedShoppingRoute: AuthenticatedShoppingRoute,
   AuthenticatedTodayRoute: AuthenticatedTodayRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSettingsPrayer_timesRoute:
+    AuthenticatedSettingsPrayer_timesRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
