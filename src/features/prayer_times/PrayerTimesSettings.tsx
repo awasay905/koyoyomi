@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link } from "@tanstack/react-router";
 import {
     Clock,
     Plus,
@@ -19,6 +20,7 @@ import {
     X,
     Bell,
     Loader2,
+    ChevronLeft,
 } from "lucide-react";
 
 import { usePrayerTimes } from "./hooks";
@@ -91,7 +93,6 @@ function getPrayerIcon(name: string, isSystem: boolean) {
     return Clock;
 }
 
-// Top-level icon renderer component to prevent dynamic component creation during render
 function PrayerIcon({
     name,
     isSystem,
@@ -103,12 +104,10 @@ function PrayerIcon({
     className?: string;
     strokeWidth?: number;
 }) {
-    // 1. Rename 'Icon' to lowercase 'icon'
     const icon = getPrayerIcon(name, isSystem);
-
-    // 2. Use lowercase 'icon' in JSX
     return React.createElement(icon, { strokeWidth, className });
 }
+
 export function PrayerTimesSettings() {
     const {
         data: prayerTimes,
@@ -179,13 +178,13 @@ export function PrayerTimesSettings() {
                         {[1, 2, 3, 4, 5].map((i) => (
                             <div key={i} className="p-3.5 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                    <Skeleton className="size-10 rounded-xl" />
+                                    <Skeleton className="size-9 rounded-lg" />
                                     <div className="flex flex-col gap-1.5">
                                         <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-5 w-16" />
+                                        <Skeleton className="h-3 w-16" />
                                     </div>
                                 </div>
-                                <Skeleton className="size-7 rounded-md" />
+                                <Skeleton className="h-5 w-16 rounded-md" />
                             </div>
                         ))}
                     </div>
@@ -208,25 +207,35 @@ export function PrayerTimesSettings() {
 
     return (
         <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6 pb-28">
-            {/* Header Section */}
+            {/* Header Section with Back Navigation */}
             <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-lg font-semibold tracking-tight text-foreground">
-                            Prayer & Reference Times
-                        </h1>
-                        {prayerTimes && (
-                            <Badge
-                                variant="secondary"
-                                className="rounded-full px-2 text-[11px] font-medium text-muted-foreground bg-muted"
-                            >
-                                {prayerTimes.length}
-                            </Badge>
-                        )}
+                <div className="flex items-start gap-2 min-w-0">
+                    <Link
+                        to="/settings"
+                        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-1.5 mt-0.5"
+                        aria-label="Back to Settings"
+                    >
+                        <ChevronLeft data-icon="inline-start" />
+                    </Link>
+
+                    <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+                                Prayer & Reference Times
+                            </h1>
+                            {prayerTimes && (
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full px-2 text-[11px] font-medium text-muted-foreground bg-muted"
+                                >
+                                    {prayerTimes.length}
+                                </Badge>
+                            )}
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            Configure prayer times for adhan notifications and custom alerts.
+                        </p>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                        Configure prayer times for adhan notifications and custom alerts.
-                    </p>
                 </div>
 
                 {/* Add Custom Time Modal Trigger */}
@@ -407,7 +416,7 @@ interface PrayerRowProps {
 function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting = false }: PrayerRowProps) {
     const [isEditing, setIsEditing] = React.useState(false);
 
-    // Editing State (only used while isEditing === true)
+    // Editing State
     const [name, setName] = React.useState(prayer.name);
     const [time, setTime] = React.useState(() => formatTimeInput(prayer.time));
     const [notifyEnabled, setNotifyEnabled] = React.useState(prayer.notify_enabled);
@@ -448,44 +457,55 @@ function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting 
 
     const formatted12h = format12HourTime(prayer.time);
 
-    // Editable Mode View
+    // Editable Mode View (2-Line Compact Layout)
     if (isEditing) {
         return (
-            <form
-                onSubmit={handleSave}
-                className="grid grid-cols-[auto_1fr] items-center gap-3.5 px-4 py-3 bg-muted/40 transition-colors"
-            >
-                {/* Left Column: Icon Square */}
-                <div
-                    className={cn(
-                        "size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
-                        notifyEnabled
-                            ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-muted text-muted-foreground border-border/50",
-                    )}
-                >
-                    <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
-                </div>
+            <form onSubmit={handleSave} className="flex flex-col gap-2.5 p-3.5 bg-muted/40 transition-colors">
+                {/* LINE 1: Icon + Title Input + Alert Toggle + Check/Cancel Actions */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div
+                            className={cn(
+                                "size-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
+                                notifyEnabled
+                                    ? "bg-primary/10 text-primary border-primary/20"
+                                    : "bg-muted text-muted-foreground border-border/50",
+                            )}
+                        >
+                            <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
+                        </div>
 
-                {/* Right Column: Editing Inputs */}
-                <div className="flex flex-col gap-2 min-w-0 flex-1">
-                    {/* Top Row: Title or Name Edit + Actions */}
-                    <div className="flex items-center justify-between gap-2 min-w-0">
                         {!prayer.is_system ? (
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Alert name"
-                                className="h-8 text-sm font-semibold flex-1 min-w-0"
+                                className="h-8 text-xs font-medium flex-1 max-w-[130px] sm:max-w-xs"
                                 autoFocus
                                 maxLength={50}
                             />
                         ) : (
-                            <span className="text-sm font-semibold text-foreground truncate">{prayer.name}</span>
+                            <span className="text-sm font-medium text-foreground truncate">{prayer.name}</span>
                         )}
+                    </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Alert Switch */}
+                        <div className="flex items-center gap-1.5">
+                            <Switch
+                                id={`notify-toggle-${prayer.id}`}
+                                checked={notifyEnabled}
+                                onCheckedChange={setNotifyEnabled}
+                                aria-label={`Toggle notifications for ${prayer.name}`}
+                            />
+                            <span className="text-xs text-muted-foreground select-none font-medium">Alert</span>
+                        </div>
+
+                        <div className="h-4 w-px bg-border/60" />
+
+                        {/* Save & Cancel Buttons */}
+                        <div className="flex items-center gap-0.5">
                             <Button
                                 type="submit"
                                 variant="ghost"
@@ -494,7 +514,7 @@ function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting 
                                 disabled={!name.trim() || isUpdating}
                                 aria-label="Save changes"
                             >
-                                {isUpdating ? <Loader2 className="animate-spin" /> : <Check />}
+                                {isUpdating ? <Loader2 className="animate-spin" /> : <Check data-icon="inline-start" />}
                             </Button>
                             <Button
                                 type="button"
@@ -505,62 +525,57 @@ function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting 
                                 disabled={isUpdating}
                                 aria-label="Cancel editing"
                             >
-                                <X />
+                                <X data-icon="inline-start" />
                             </Button>
                         </div>
                     </div>
+                </div>
 
-                    {/* Bottom Row: Controls Grid */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                {/* LINE 2: Time Picker + Notification Lead Time Counter */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground font-medium">Time:</span>
                         <Input
                             type="time"
                             step={300}
                             value={time}
                             onChange={(e) => setTime(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            className="h-8 w-28 text-sm font-mono font-medium text-center shrink-0"
+                            className="h-8 w-28 text-xs font-mono font-medium text-center"
                         />
+                    </div>
 
-                        <div className="flex items-center gap-3">
-                            {notifyEnabled && (
-                                <div className="flex items-center h-8 rounded-md border border-input bg-card shrink-0 shadow-2xs">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-7 rounded-none text-muted-foreground hover:text-foreground"
-                                        onClick={handleDecrementLead}
-                                        aria-label="Decrease lead minutes"
-                                    >
-                                        <Minus />
-                                    </Button>
-                                    <span className="w-10 text-center text-xs font-mono select-none text-muted-foreground font-medium">
-                                        {lead}m
-                                    </span>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-7 rounded-none text-muted-foreground hover:text-foreground"
-                                        onClick={handleIncrementLead}
-                                        aria-label="Increase lead minutes"
-                                    >
-                                        <Plus />
-                                    </Button>
-                                </div>
-                            )}
-
-                            <div className="flex items-center gap-2 shrink-0">
-                                <Switch
-                                    id={`notify-toggle-${prayer.id}`}
-                                    checked={notifyEnabled}
-                                    onCheckedChange={setNotifyEnabled}
-                                    aria-label={`Toggle notifications for ${prayer.name}`}
-                                />
-                                <span className="text-xs text-muted-foreground select-none font-medium">Notify</span>
+                    {notifyEnabled ? (
+                        <div className="flex items-center gap-1.5">
+                            <div className="flex items-center h-8 rounded-md border border-input bg-card shrink-0 shadow-2xs">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 rounded-none text-muted-foreground hover:text-foreground"
+                                    onClick={handleDecrementLead}
+                                    aria-label="Decrease lead minutes"
+                                >
+                                    <Minus data-icon="inline-start" />
+                                </Button>
+                                <span className="w-8 text-center text-xs font-mono select-none text-muted-foreground font-medium">
+                                    {lead}m
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 rounded-none text-muted-foreground hover:text-foreground"
+                                    onClick={handleIncrementLead}
+                                    aria-label="Increase lead minutes"
+                                >
+                                    <Plus data-icon="inline-start" />
+                                </Button>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <span className="text-xs text-muted-foreground/60 italic">Muted</span>
+                    )}
                 </div>
             </form>
         );
@@ -570,75 +585,76 @@ function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting 
     return (
         <div
             className={cn(
-                "group grid grid-cols-[auto_1fr] items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-muted/30",
+                "group flex items-center justify-between gap-3 px-3.5 py-3 transition-colors duration-150 hover:bg-muted/30",
                 (isUpdating || isDeleting) && "opacity-60 pointer-events-none",
             )}
         >
-            {/* LEFT COLUMN: Clean Icon */}
-            <div
-                className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
-                    prayer.notify_enabled
-                        ? "bg-primary/10 text-primary border-primary/20"
-                        : "bg-muted/60 text-muted-foreground border-border/40",
-                )}
-            >
-                {isUpdating || isDeleting ? (
-                    <Loader2 className="animate-spin text-muted-foreground" />
-                ) : (
-                    <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
-                )}
-            </div>
+            {/* LEFT: Icon + Name + Notification Badge */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div
+                    className={cn(
+                        "size-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
+                        prayer.notify_enabled
+                            ? "bg-primary/10 text-primary border-primary/20"
+                            : "bg-muted/50 text-muted-foreground border-border/40",
+                    )}
+                >
+                    {isUpdating || isDeleting ? (
+                        <Loader2 className="animate-spin text-muted-foreground" />
+                    ) : (
+                        <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
+                    )}
+                </div>
 
-            {/* RIGHT COLUMN: Tight Vertical Stack */}
-            <div className="flex flex-col justify-center gap-0.5 min-w-0 flex-1">
-                {/* TOP ROW: Name + Clean Badge + Hover Edit Controls */}
-                <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-semibold text-foreground truncate">{prayer.name}</span>
+                        <span className="text-sm font-medium text-foreground truncate">{prayer.name}</span>
                         {prayer.notify_enabled && (
                             <Badge
                                 variant="secondary"
-                                className="font-mono text-[11px] px-2 h-5 gap-1 shrink-0 rounded-md bg-primary/10 text-primary border-0 font-medium"
+                                className="font-mono text-[10px] px-1.5 h-4.5 gap-1 shrink-0 rounded-md font-medium"
                             >
                                 <Bell data-icon="inline-start" />
                                 <span>{prayer.notify_lead_minutes}m</span>
                             </Badge>
                         )}
                     </div>
+                    {!prayer.notify_enabled && (
+                        <span className="text-xs text-muted-foreground/70 font-normal">Muted</span>
+                    )}
+                </div>
+            </div>
 
-                    <div className="flex items-center gap-0.5 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            {/* RIGHT: Softer Time Typography + Action Buttons */}
+            <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-baseline gap-1 text-right">
+                    <span className="font-mono text-base font-medium text-foreground tabular-nums">
+                        {formatted12h.time}
+                    </span>
+                    <span className="text-xs font-normal uppercase text-muted-foreground">{formatted12h.period}</span>
+                </div>
+
+                <div className="flex items-center gap-0.5 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                        onClick={handleStartEdit}
+                        aria-label={`Edit ${prayer.name}`}
+                    >
+                        <Pencil data-icon="inline-start" />
+                    </Button>
+                    {!prayer.is_system && onDelete && (
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="size-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-                            onClick={handleStartEdit}
-                            aria-label={`Edit ${prayer.name}`}
+                            className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={onDelete}
+                            aria-label={`Delete ${prayer.name}`}
                         >
-                            <Pencil />
+                            <Trash2 data-icon="inline-start" />
                         </Button>
-                        {!prayer.is_system && onDelete && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={onDelete}
-                                aria-label={`Delete ${prayer.name}`}
-                            >
-                                <Trash2 />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                {/* BOTTOM ROW: Easily Readable Time Typography */}
-                <div className="flex items-baseline gap-1.5 min-w-0">
-                    <span className="font-mono text-lg font-bold tracking-tight text-foreground tabular-nums">
-                        {formatted12h.time}
-                    </span>
-                    <span className="text-xs font-semibold font-sans uppercase text-muted-foreground/80 tracking-wider">
-                        {formatted12h.period}
-                    </span>
+                    )}
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -48,26 +49,28 @@ export function DayTypeDropdown({
                         {selected?.name ?? placeholder}
                     </span>
                 </span>
-                <ChevronsUpDown className="size-3.5 text-muted-foreground shrink-0" />
+                <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
                 {dayTypes.length === 0 ? (
                     <div className="px-2 py-3 text-xs text-muted-foreground text-center">No day-types yet.</div>
                 ) : (
-                    dayTypes.map((dt) => (
-                        <DropdownMenuItem key={dt.id} onClick={() => onChange(dt.id)} className="justify-between">
-                            <span className="flex items-center gap-2 min-w-0">
-                                {dt.color && (
-                                    <span
-                                        className="size-2 rounded-full shrink-0"
-                                        style={{ backgroundColor: dt.color }}
-                                    />
-                                )}
-                                <span className="truncate">{dt.name}</span>
-                            </span>
-                            {dt.id === value && <Check className="size-3.5 text-primary shrink-0" />}
-                        </DropdownMenuItem>
-                    ))
+                    <DropdownMenuGroup>
+                        {dayTypes.map((dt) => (
+                            <DropdownMenuItem key={dt.id} onClick={() => onChange(dt.id)} className="justify-between">
+                                <span className="flex items-center gap-2 min-w-0">
+                                    {dt.color && (
+                                        <span
+                                            className="size-2 rounded-full shrink-0"
+                                            style={{ backgroundColor: dt.color }}
+                                        />
+                                    )}
+                                    <span className="truncate">{dt.name}</span>
+                                </span>
+                                {dt.id === value && <Check data-icon="inline-end" className="text-primary" />}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuGroup>
                 )}
             </DropdownMenuContent>
         </DropdownMenu>

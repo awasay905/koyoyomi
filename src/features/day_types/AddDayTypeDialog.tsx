@@ -70,7 +70,7 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
                 <DialogHeader>
                     <DialogTitle>{isEditing ? "Edit Day-Type" : "New Day-Type"}</DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Rename or recolour this day-type." : "Create a reusable schedule template."}
+                        {isEditing ? "Rename or change the colour swatch." : "Create a reusable schedule template."}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -80,7 +80,7 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
                             <FieldLabel htmlFor="day_type_name">Name</FieldLabel>
                             <Input
                                 id="day_type_name"
-                                placeholder="e.g., WFH, Office, Weekend"
+                                placeholder="e.g., Office, Home, Weekend"
                                 aria-invalid={Boolean(errors.name)}
                                 {...register("name")}
                                 className="h-9 text-xs bg-background"
@@ -94,27 +94,27 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
                         </Field>
 
                         <Field>
-                            <FieldLabel>Colour</FieldLabel>
+                            <FieldLabel>Colour Swatch</FieldLabel>
                             <Controller
                                 control={control}
                                 name="color"
                                 render={({ field }) => (
-                                    <div className="flex flex-wrap gap-2 pt-0.5">
+                                    <div className="flex flex-wrap gap-2 pt-1">
                                         {DAY_TYPE_COLORS.map((c) => (
                                             <button
                                                 key={c}
                                                 type="button"
                                                 onClick={() => field.onChange(c)}
                                                 className={cn(
-                                                    "size-6 rounded-full flex items-center justify-center transition-transform active:scale-95 ring-1 ring-border/60",
+                                                    "size-6 rounded-full flex items-center justify-center transition-all active:scale-95 ring-1 ring-border/60 hover:scale-105",
                                                     field.value === c &&
-                                                        "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+                                                        "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105",
                                                 )}
                                                 style={{ backgroundColor: c }}
                                                 aria-label={`Select colour ${c}`}
                                             >
                                                 {field.value === c && (
-                                                    <Check className="size-3 text-white drop-shadow" />
+                                                    <Check className="size-3 text-white drop-shadow-sm" />
                                                 )}
                                             </button>
                                         ))}

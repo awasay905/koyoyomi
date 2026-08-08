@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Plus, CalendarDays, MoreHorizontal, Pencil, Archive, ChevronRight } from "lucide-react";
+import { Plus, CalendarDays, MoreHorizontal, Pencil, Archive, ChevronRight, ChevronLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,62 +35,84 @@ export function DayTypesPage() {
     };
 
     return (
-        <div className="max-w-xl mx-auto px-4 py-5 flex flex-col gap-4 pb-28">
-            <div className="flex flex-col gap-1">
-                <h1 className="text-xl font-bold tracking-tight">Day-Type Templates</h1>
-                <p className="text-xs text-muted-foreground">
-                    Build reusable schedules for WFH, office, weekends & more.
-                </p>
-            </div>
+        <div className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-6 pb-28">
+            {/* Header Section with Back Navigation & Action Button */}
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2 min-w-0">
+                    <Link
+                        to="/settings"
+                        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-1.5 mt-0.5"
+                        aria-label="Back to Settings"
+                    >
+                        <ChevronLeft data-icon="inline-start" />
+                    </Link>
 
-            <Button size="sm" onClick={handleOpenCreate} className="h-8 px-2.5 text-xs font-medium gap-1.5 self-start">
-                <Plus data-icon="inline-start" />
-                <span>New Day-Type</span>
-            </Button>
+                    <div className="flex flex-col gap-1 min-w-0">
+                        <h1 className="text-lg font-semibold tracking-tight text-foreground">Day-Type Templates</h1>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            Build reusable schedules for work, office, weekend, and custom routines.
+                        </p>
+                    </div>
+                </div>
+
+                <Button
+                    size="sm"
+                    onClick={handleOpenCreate}
+                    className="h-8 px-2.5 text-xs font-medium gap-1.5 shrink-0"
+                >
+                    <Plus data-icon="inline-start" />
+                    <span>New</span>
+                </Button>
+            </div>
 
             {isLoading ? (
                 <div className="flex flex-col gap-2">
-                    <Skeleton className="h-14 w-full rounded-xl" />
-                    <Skeleton className="h-14 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-xl" />
                 </div>
             ) : dayTypes.length === 0 ? (
-                <Empty className="py-10 border border-dashed rounded-xl bg-card/50">
+                <Empty className="py-10 border border-dashed border-border/80 rounded-xl bg-card/40">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
                             <CalendarDays />
                         </EmptyMedia>
-                        <EmptyTitle className="text-xs">No day-types yet</EmptyTitle>
-                        <EmptyDescription className="text-[11px] max-w-xs">
-                            Create your first day-type template — like WFH or Weekend — to start building your schedule.
+                        <EmptyTitle className="text-xs">No day-types created yet</EmptyTitle>
+                        <EmptyDescription className="text-xs max-w-xs">
+                            Create your first day-type template to start building your weekly pattern.
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
-                        <Button size="sm" variant="outline" onClick={handleOpenCreate} className="h-7 text-xs">
+                        <Button size="sm" variant="outline" onClick={handleOpenCreate} className="h-8 text-xs">
                             <Plus data-icon="inline-start" />
-                            <span>New Day-Type</span>
+                            <span>Create a day-type</span>
                         </Button>
                     </EmptyContent>
                 </Empty>
             ) : (
-                <div className="border border-border/80 rounded-xl bg-card overflow-hidden divide-y divide-border/50 shadow-2xs">
+                <div className="border border-border rounded-xl bg-card overflow-hidden divide-y divide-border/60 shadow-2xs">
                     {dayTypes.map((dt) => (
                         <div
                             key={dt.id}
-                            className="group flex items-center justify-between px-3 py-3 transition-colors duration-150 hover:bg-muted/40"
+                            className="group flex items-center justify-between px-3.5 py-3 transition-colors duration-150 hover:bg-muted/30"
                         >
+                            {/* Seamless full-row click target */}
                             <Link
                                 to="/settings/day_types/$dayTypeId"
                                 params={{ dayTypeId: dt.id }}
-                                className="flex items-center gap-3 min-w-0 flex-1"
+                                className="flex items-center justify-between gap-3 min-w-0 flex-1 pr-2"
                             >
-                                <span
-                                    className="size-3 rounded-full shrink-0 ring-1 ring-border/50"
-                                    style={{ backgroundColor: dt.color ?? undefined }}
-                                />
-                                <span className="text-xs font-medium text-foreground truncate">{dt.name}</span>
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <span
+                                        className="size-3 rounded-full shrink-0 ring-1 ring-border/50"
+                                        style={{ backgroundColor: dt.color ?? undefined }}
+                                    />
+                                    <span className="text-sm font-medium text-foreground truncate">{dt.name}</span>
+                                </div>
+                                <ChevronRight className="size-4 text-muted-foreground/60 shrink-0" />
                             </Link>
 
-                            <div className="flex items-center gap-1 shrink-0">
+                            {/* Secondary Row Actions */}
+                            <div className="flex items-center shrink-0">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger
                                         render={
@@ -108,22 +130,18 @@ export function DayTypesPage() {
                                         <DropdownMenuGroup>
                                             <DropdownMenuItem onClick={() => handleOpenEdit(dt)}>
                                                 <Pencil data-icon="inline-start" />
-                                                Rename / recolour
+                                                <span>Edit template</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 onClick={() => archiveDayType.mutate(dt.id)}
                                                 className="text-destructive focus:text-destructive"
                                             >
                                                 <Archive data-icon="inline-start" />
-                                                Archive
+                                                <span>Archive</span>
                                             </DropdownMenuItem>
                                         </DropdownMenuGroup>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-
-                                <Link to="/settings/day_types/$dayTypeId" params={{ dayTypeId: dt.id }}>
-                                    <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-                                </Link>
                             </div>
                         </div>
                     ))}
