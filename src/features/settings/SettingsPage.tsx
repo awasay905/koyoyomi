@@ -1,5 +1,13 @@
 import { createLink } from "@tanstack/react-router";
-import { ClockIcon, SunIcon, MoonIcon, LogOutIcon, ChevronRightIcon, CalendarDaysIcon } from "lucide-react";
+import {
+    ClockIcon,
+    SunIcon,
+    MoonIcon,
+    LogOutIcon,
+    ChevronRightIcon,
+    CalendarDaysIcon,
+    CalendarRangeIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,9 +75,9 @@ export function SettingsPage() {
                         <ChevronRightIcon data-icon="inline-end" className="text-muted-foreground" />
                     </RouterButton>
 
-                    {/* Weekly Pattern Navigation 
+                    {/* Weekly Pattern Navigation */}
                     <RouterButton
-                        // to="/settings/weekly_pattern"
+                        to="/settings/weekly_pattern"
                         variant="ghost"
                         className="w-full justify-between h-auto py-3 px-3 rounded-lg text-foreground hover:bg-accent"
                     >
@@ -83,7 +91,7 @@ export function SettingsPage() {
                             </div>
                         </div>
                         <ChevronRightIcon data-icon="inline-end" className="text-muted-foreground" />
-                    </RouterButton> */}
+                    </RouterButton>
                 </CardContent>
             </Card>
 
