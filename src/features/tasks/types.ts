@@ -40,8 +40,6 @@ export interface Task {
     recurrence_end_date: string | null;
 
     created_at: string;
-
-    // joined
     category?: Category | null;
 }
 
@@ -55,18 +53,28 @@ export interface TaskCompletion {
 
 export interface CreateTaskInput {
     title: string;
+    description?: string | null;
+    category_id?: string | null;
     type: TaskType;
     priority?: Priority;
-    description?: string;
-    category_id?: string | null;
     estimated_minutes?: number | null;
     notify_enabled?: boolean;
     notify_lead_minutes?: number;
+
     deadline?: string | null;
+
     recurrence_unit?: RecurrenceUnit | null;
     recurrence_interval?: number | null;
     start_date?: string | null;
     recurrence_end_type?: RecurrenceEndType | null;
     recurrence_end_count?: number | null;
     recurrence_end_date?: string | null;
+}
+
+export type UpdateTaskInput = Partial<CreateTaskInput> & { id: string };
+
+export interface RecurringTaskState {
+    nextDue: Date | null;
+    isFinished: boolean;
+    completionCount: number;
 }
