@@ -1,5 +1,10 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { ThemeProvider } from "@/hooks/useTheme";
 
 export const Route = createRootRoute({
-    component: () => <Outlet />,
+    component: () => (
+        <ThemeProvider>
+            <Outlet />
+        </ThemeProvider>
+    ),
 });
