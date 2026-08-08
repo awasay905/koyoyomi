@@ -15,6 +15,7 @@ import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedBacklogRouteImport } from './routes/_authenticated/backlog'
 import { Route as AuthenticatedShoppingRouteImport } from './routes/_authenticated/shopping'
 import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
+import { Route as AuthenticatedWeekRouteImport } from './routes/_authenticated/week'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
@@ -50,6 +51,11 @@ const AuthenticatedShoppingRoute = AuthenticatedShoppingRouteImport.update({
 const AuthenticatedTodayRoute = AuthenticatedTodayRouteImport.update({
   id: '/today',
   path: '/today',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedWeekRoute = AuthenticatedWeekRouteImport.update({
+  id: '/week',
+  path: '/week',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/backlog': typeof AuthenticatedBacklogRoute
   '/shopping': typeof AuthenticatedShoppingRoute
   '/today': typeof AuthenticatedTodayRoute
+  '/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/backlog': typeof AuthenticatedBacklogRoute
   '/shopping': typeof AuthenticatedShoppingRoute
   '/today': typeof AuthenticatedTodayRoute
+  '/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof AuthenticatedIndexRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/backlog': typeof AuthenticatedBacklogRoute
   '/_authenticated/shopping': typeof AuthenticatedShoppingRoute
   '/_authenticated/today': typeof AuthenticatedTodayRoute
+  '/_authenticated/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/backlog'
     | '/shopping'
     | '/today'
+    | '/week'
     | '/auth/login'
     | '/auth/register'
     | '/settings/prayer_times'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/backlog'
     | '/shopping'
     | '/today'
+    | '/week'
     | '/auth/login'
     | '/auth/register'
     | '/'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/backlog'
     | '/_authenticated/shopping'
     | '/_authenticated/today'
+    | '/_authenticated/week'
     | '/auth/login'
     | '/auth/register'
     | '/_authenticated/'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTodayRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/week': {
+      id: '/_authenticated/week'
+      path: '/week'
+      fullPath: '/week'
+      preLoaderRoute: typeof AuthenticatedWeekRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -290,6 +309,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBacklogRoute: typeof AuthenticatedBacklogRoute
   AuthenticatedShoppingRoute: typeof AuthenticatedShoppingRoute
   AuthenticatedTodayRoute: typeof AuthenticatedTodayRoute
+  AuthenticatedWeekRoute: typeof AuthenticatedWeekRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSettingsPrayer_timesRoute: typeof AuthenticatedSettingsPrayer_timesRoute
   AuthenticatedSettingsWeekly_patternRoute: typeof AuthenticatedSettingsWeekly_patternRoute
@@ -303,6 +323,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBacklogRoute: AuthenticatedBacklogRoute,
   AuthenticatedShoppingRoute: AuthenticatedShoppingRoute,
   AuthenticatedTodayRoute: AuthenticatedTodayRoute,
+  AuthenticatedWeekRoute: AuthenticatedWeekRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSettingsPrayer_timesRoute:
     AuthenticatedSettingsPrayer_timesRoute,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, MoreHorizontal, Pencil, Clock, Repeat, SkipForward } from "lucide-react";
+import { Trash2, MoreHorizontal, Pencil, Clock, Repeat, SkipForward, Calendar } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ interface TaskRowProps {
     task: Task;
     recurringState?: RecurringTaskState;
     onEdit: (task: Task) => void;
+    onAssign?: (task: Task) => void;
 }
 
 function getDueInfo(dueDate: Date | null, nowMs: number): { label: string; isOverdue: boolean } | null {
@@ -55,7 +56,7 @@ function getDueInfo(dueDate: Date | null, nowMs: number): { label: string; isOve
     return { label: dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }), isOverdue: false };
 }
 
-export function TaskRow({ task, recurringState, onEdit }: TaskRowProps) {
+export function TaskRow({ task, recurringState, onEdit, onAssign }: TaskRowProps) {
     const now = useNow();
     const markOneTimeDone = useMarkOneTimeDone();
     const logCompletion = useLogTaskCompletion();
@@ -185,6 +186,12 @@ export function TaskRow({ task, recurringState, onEdit }: TaskRowProps) {
                                 <Pencil data-icon="inline-start" />
                                 Edit task
                             </DropdownMenuItem>
+                            {onAssign && (
+                                <DropdownMenuItem onClick={() => onAssign(task)}>
+                                    <Calendar data-icon="inline-start" />
+                                    Assign to day
+                                </DropdownMenuItem>
+                            )}
                             {isRecurring && (
                                 <DropdownMenuItem onClick={() => skipCycle.mutate(task.id)}>
                                     <SkipForward data-icon="inline-start" />

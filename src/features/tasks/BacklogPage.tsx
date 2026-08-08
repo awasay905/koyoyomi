@@ -13,21 +13,30 @@ import { computeRecurringState } from "./recurrence";
 import { TaskRow } from "./TaskRow";
 import { AddTaskDialog } from "./AddTaskDialog";
 
-type QuickFilter = "all" | "overdue" | "due_soon";
+import { usePendingAssignmentsQuery } from "@/features/task_assignments/hooks";
+import { AssignToDayDialog } from "@/features/task_assignments/AssignToDayDialog";
+
+type QuickFilter = "all" | "overdue" | "due_soon" | "unassigned";
 
 export function BacklogPage() {
-    const { data: tasks = [], isLoading } = useTasksQuery();
+    const { data: tasks = [], isLoading: isTasksLoading } = useTasksQuery();
     const { data: completions = [] } = useTaskCompletionsQuery();
     const { data: categories = [] } = useTaskCategoriesQuery();
+    const { data: pendingAssignments = [], isLoading: isAssignmentsLoading } = usePendingAssignmentsQuery();
     const now = useNow();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+    const [taskToAssign, setTaskToAssign] = useState<Task | null>(null);
+
     const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    const { rows, activeCount, overdueCount } = useMemo(() => {
+    const isLoading = isTasksLoading || isAssignmentsLoading;
+
+    const { rows, activeCount, overdueCount, unassignedCount } = useMemo(() => {
         const next48h = now + 48 * 60 * 60 * 1000;
+        const assignedTaskIds = new Set(pendingAssignments.map((a) => a.task_id));
 
         const withDueInfo = tasks
             .filter((t) => (t.type === "one_time" ? t.status === "active" : true))
@@ -46,8 +55,11 @@ export function BacklogPage() {
             .filter((r) => !r.isFinished);
 
         let ovCount = 0;
+        let unassignedC = 0;
+
         withDueInfo.forEach((r) => {
             if (r.dueAt && r.dueAt.getTime() < now) ovCount++;
+            if (!assignedTaskIds.has(r.task.id)) unassignedC++;
         });
 
         const filtered = withDueInfo.filter((r) => {
@@ -59,6 +71,9 @@ export function BacklogPage() {
                 const t = r.dueAt.getTime();
                 return t >= now && t <= next48h;
             }
+            if (quickFilter === "unassigned") {
+                return !assignedTaskIds.has(r.task.id);
+            }
             return true;
         });
 
@@ -69,8 +84,8 @@ export function BacklogPage() {
             return a.dueAt.getTime() - b.dueAt.getTime();
         });
 
-        return { rows: sorted, activeCount: withDueInfo.length, overdueCount: ovCount };
-    }, [tasks, completions, quickFilter, selectedCategory, now]);
+        return { rows: sorted, activeCount: withDueInfo.length, overdueCount: ovCount, unassignedCount: unassignedC };
+    }, [tasks, completions, pendingAssignments, quickFilter, selectedCategory, now]);
 
     const handleOpenCreate = () => {
         setTaskToEdit(null);
@@ -80,6 +95,10 @@ export function BacklogPage() {
     const handleOpenEdit = (task: Task) => {
         setTaskToEdit(task);
         setIsDialogOpen(true);
+    };
+
+    const handleOpenAssign = (task: Task) => {
+        setTaskToAssign(task);
     };
 
     return (
@@ -109,6 +128,23 @@ export function BacklogPage() {
                     className="h-6.5 text-xs rounded-full px-3 shrink-0 font-normal"
                 >
                     All
+                </Button>
+
+                <Button
+                    variant={quickFilter === "unassigned" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                        setQuickFilter("unassigned");
+                        setSelectedCategory(null);
+                    }}
+                    className="h-6.5 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
+                >
+                    <span>Unassigned</span>
+                    {unassignedCount > 0 && (
+                        <Badge variant="secondary" className="px-1 text-[10px] h-3.5 rounded-full font-normal">
+                            {unassignedCount}
+                        </Badge>
+                    )}
                 </Button>
 
                 <Button
@@ -193,6 +229,7 @@ export function BacklogPage() {
                                 task={r.task}
                                 recurringState={r.recurringState}
                                 onEdit={handleOpenEdit}
+                                onAssign={handleOpenAssign}
                             />
                         ))}
                     </div>
@@ -200,6 +237,16 @@ export function BacklogPage() {
             </div>
 
             <AddTaskDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} taskToEdit={taskToEdit} />
+
+            {taskToAssign && (
+                <AssignToDayDialog
+                    open={Boolean(taskToAssign)}
+                    onOpenChange={(open) => {
+                        if (!open) setTaskToAssign(null);
+                    }}
+                    task={taskToAssign}
+                />
+            )}
         </div>
     );
 }
