@@ -26,3 +26,6 @@ dist-ssr
 .env
 koyoyomi-key
 android/app/release
+combined_output.txt
+concat_files.js
+documents/app-requirements-and-db-design.md

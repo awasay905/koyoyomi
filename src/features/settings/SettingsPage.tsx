@@ -1,5 +1,5 @@
 import { createLink } from "@tanstack/react-router";
-import { ClockIcon, SunIcon, MoonIcon, LogOutIcon, ChevronRightIcon } from "lucide-react";
+import { ClockIcon, SunIcon, MoonIcon, LogOutIcon, ChevronRightIcon, CalendarDaysIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,9 +49,9 @@ export function SettingsPage() {
                         <ChevronRightIcon data-icon="inline-end" className="text-muted-foreground" />
                     </RouterButton>
 
-                    {/* Day-Type Templates Navigation
+                    {/* Day-Type Templates Navigation */}
                     <RouterButton
-                        // to="/settings/day_types"
+                        to="/settings/day_types"
                         variant="ghost"
                         className="w-full justify-between h-auto py-3 px-3 rounded-lg text-foreground hover:bg-accent"
                     >

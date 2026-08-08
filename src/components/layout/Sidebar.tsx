@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { NAV_ITEMS } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { useSignOut } from "@/features/auth/hooks";
+import logoSvg from "@/assets/logo.svg";
 
 export function Sidebar() {
     const { location } = useRouterState();
@@ -9,8 +10,9 @@ export function Sidebar() {
     return (
         <aside className="w-56 border-r border-border bg-card flex flex-col shrink-0 h-screen">
             {/* Logo */}
-            <div className="px-6 py-5 border-b border-border">
-                <span className="font-semibold text-lg tracking-tight">暦 Koyomi</span>
+            <div className="px-6 py-5 border-b border-border flex items-center gap-1">
+                <img src={logoSvg} alt="Koyomi Logo" className="size-6 shrink-0" />
+                <span className="font-semibold text-lg tracking-tight">Koyoyomi</span>
             </div>
 
             {/* Nav links */}

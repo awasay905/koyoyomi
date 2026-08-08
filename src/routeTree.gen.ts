@@ -19,6 +19,8 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsPrayer_timesRouteImport } from './routes/_authenticated/settings/prayer_times'
+import { Route as AuthenticatedSettingsDay_typesIndexRouteImport } from './routes/_authenticated/settings/day_types/index'
+import { Route as AuthenticatedSettingsDay_typesDayTypeIdRouteImport } from './routes/_authenticated/settings/day_types/$dayTypeId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -71,6 +73,18 @@ const AuthenticatedSettingsPrayer_timesRoute =
     path: '/settings/prayer_times',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSettingsDay_typesIndexRoute =
+  AuthenticatedSettingsDay_typesIndexRouteImport.update({
+    id: '/settings/day_types/',
+    path: '/settings/day_types/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsDay_typesDayTypeIdRoute =
+  AuthenticatedSettingsDay_typesDayTypeIdRouteImport.update({
+    id: '/settings/day_types/$dayTypeId',
+    path: '/settings/day_types/$dayTypeId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -82,6 +96,8 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
+  '/settings/day_types/': typeof AuthenticatedSettingsDay_typesIndexRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AuthenticatedAboutRoute
@@ -93,6 +109,8 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
+  '/settings/day_types': typeof AuthenticatedSettingsDay_typesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +124,8 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
+  '/_authenticated/settings/day_types/': typeof AuthenticatedSettingsDay_typesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +139,8 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/settings/prayer_times'
     | '/settings/'
+    | '/settings/day_types/$dayTypeId'
+    | '/settings/day_types/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -130,6 +152,8 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/prayer_times'
     | '/settings'
+    | '/settings/day_types/$dayTypeId'
+    | '/settings/day_types'
   id:
     | '__root__'
     | '/_authenticated'
@@ -142,6 +166,8 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/settings/prayer_times'
     | '/_authenticated/settings/'
+    | '/_authenticated/settings/day_types/$dayTypeId'
+    | '/_authenticated/settings/day_types/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -222,6 +248,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPrayer_timesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/day_types/': {
+      id: '/_authenticated/settings/day_types/'
+      path: '/settings/day_types'
+      fullPath: '/settings/day_types/'
+      preLoaderRoute: typeof AuthenticatedSettingsDay_typesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/day_types/$dayTypeId': {
+      id: '/_authenticated/settings/day_types/$dayTypeId'
+      path: '/settings/day_types/$dayTypeId'
+      fullPath: '/settings/day_types/$dayTypeId'
+      preLoaderRoute: typeof AuthenticatedSettingsDay_typesDayTypeIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -233,6 +273,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSettingsPrayer_timesRoute: typeof AuthenticatedSettingsPrayer_timesRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+  AuthenticatedSettingsDay_typesDayTypeIdRoute: typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
+  AuthenticatedSettingsDay_typesIndexRoute: typeof AuthenticatedSettingsDay_typesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -244,6 +286,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsPrayer_timesRoute:
     AuthenticatedSettingsPrayer_timesRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+  AuthenticatedSettingsDay_typesDayTypeIdRoute:
+    AuthenticatedSettingsDay_typesDayTypeIdRoute,
+  AuthenticatedSettingsDay_typesIndexRoute:
+    AuthenticatedSettingsDay_typesIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
