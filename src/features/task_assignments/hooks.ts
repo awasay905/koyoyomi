@@ -75,6 +75,19 @@ export function useAssignTaskToDay() {
             } = await supabase.auth.getUser();
             if (!user) throw new Error("User not authenticated");
 
+            // Prevent duplicate pending assignment for the same task on the same date
+            const { data: existing } = await supabase
+                .from("task_assignments")
+                .select(ASSIGNMENT_SELECT)
+                .eq("task_id", input.task_id)
+                .eq("assigned_date", input.assigned_date)
+                .eq("status", "pending")
+                .maybeSingle();
+
+            if (existing) {
+                return existing as unknown as TaskAssignment;
+            }
+
             const { data, error } = await supabase
                 .from("task_assignments")
                 .insert({ ...input, user_id: user.id })

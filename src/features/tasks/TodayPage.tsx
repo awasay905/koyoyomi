@@ -38,6 +38,7 @@ import {
     useUnassignFromSlot,
     useAssignToSlot,
 } from "@/features/task_assignments/hooks";
+import { getBlockRemainingMinutes } from "@/features/task_assignments/utils";
 import { DayAssignmentRow } from "@/features/task_assignments/DayAssignmentRow";
 import type { TaskAssignment } from "@/features/task_assignments/types";
 import type { ScheduleBlock } from "@/features/day_types/types";
@@ -69,7 +70,7 @@ export function TodayPage() {
     // 2. Day Assignments for Today
     const { data: dayAssignments = [], isLoading: isAssignmentsLoading } = useDayAssignmentsQuery(todayStr);
 
-    // 3. Backlog Tasks & Completions (for overdue calculation & completion counts)
+    // 3. Backlog Tasks & Completions
     const { data: tasks = [] } = useTasksQuery();
     const { data: completions = [] } = useTaskCompletionsQuery();
 
@@ -83,20 +84,22 @@ export function TodayPage() {
 
     const isLoading = isResolvingDayType || isBlocksLoading || isAssignmentsLoading;
 
-    // Split assignments into slotted vs unslotted
-    const { slottedAssignmentsMap, unslottedAssignments } = useMemo(() => {
-        const slottedMap = new Map<string, TaskAssignment>();
+    // Group slotted assignments into arrays per block ID to support multiple tasks per block
+    const { slottedAssignmentsGrouped, unslottedAssignments } = useMemo(() => {
+        const slottedGrouped = new Map<string, TaskAssignment[]>();
         const unslotted: TaskAssignment[] = [];
 
         for (const assignment of dayAssignments) {
             if (assignment.schedule_block_id) {
-                slottedMap.set(assignment.schedule_block_id, assignment);
+                const list = slottedGrouped.get(assignment.schedule_block_id) ?? [];
+                list.push(assignment);
+                slottedGrouped.set(assignment.schedule_block_id, list);
             } else if (assignment.status === "pending") {
                 unslotted.push(assignment);
             }
         }
 
-        return { slottedAssignmentsMap: slottedMap, unslottedAssignments: unslotted };
+        return { slottedAssignmentsGrouped: slottedGrouped, unslottedAssignments: unslotted };
     }, [dayAssignments]);
 
     // Calculate overdue tasks count from backlog
@@ -115,7 +118,6 @@ export function TodayPage() {
         return count;
     }, [tasks, completions, nowMs]);
 
-    // Map for completion count per task (used by DayAssignmentRow)
     const completionCountsMap = useMemo(() => {
         const map = new Map<string, number>();
         for (const task of tasks) {
@@ -131,10 +133,9 @@ export function TodayPage() {
 
     return (
         <div className="flex flex-col h-full bg-background">
-            {/* Scrollable Container */}
             <div className="flex-1 overflow-y-auto pb-28">
                 <div className="max-w-4xl mx-auto px-4 py-5 flex flex-col gap-4">
-                    {/* Header: Date + Day Type Badge */}
+                    {/* Header */}
                     <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
                         <div className="flex items-center gap-2 min-w-0">
                             <CalendarIcon data-icon="inline-start" className="size-5 text-muted-foreground shrink-0" />
@@ -143,7 +144,6 @@ export function TodayPage() {
                             </h1>
                         </div>
 
-                        {/* Resolved Day-Type Badge Trigger */}
                         <Button
                             variant="outline"
                             size="sm"
@@ -188,7 +188,6 @@ export function TodayPage() {
                         </Alert>
                     )}
 
-                    {/* Desktop Two-Column / Mobile Stack Layout */}
                     <div className="flex flex-col md:grid md:grid-cols-[1fr_320px] md:gap-6 items-start gap-4">
                         {/* Timeline Column */}
                         <div className="flex flex-col gap-3 w-full min-w-0">
@@ -226,9 +225,10 @@ export function TodayPage() {
                             ) : (
                                 <div className="border border-border/80 rounded-xl bg-card overflow-hidden divide-y divide-border/50 shadow-2xs">
                                     {scheduleBlocks.map((block) => {
-                                        const slottedAssignment = slottedAssignmentsMap.get(block.id);
+                                        const slottedAssignments = slottedAssignmentsGrouped.get(block.id) ?? [];
                                         const isFree = block.block_type === "free";
                                         const duration = blockDurationMinutes(block);
+                                        const remainingMins = getBlockRemainingMinutes(block, dayAssignments);
 
                                         return (
                                             <div
@@ -273,63 +273,101 @@ export function TodayPage() {
                                                     </div>
 
                                                     {/* Block Notes if Fixed */}
-                                                    {block.notes && !slottedAssignment && (
+                                                    {block.notes && slottedAssignments.length === 0 && (
                                                         <p className="text-[11px] text-muted-foreground truncate">
                                                             {block.notes}
                                                         </p>
                                                     )}
 
-                                                    {/* Slotted Task Item inside Free Block */}
-                                                    {slottedAssignment && slottedAssignment.task && (
-                                                        <div className="mt-1 flex items-center justify-between gap-2 p-2 rounded-lg bg-background border border-border/80 shadow-2xs">
-                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                                <Checkbox
-                                                                    checked={slottedAssignment.status === "done"}
-                                                                    onCheckedChange={(checked) => {
-                                                                        if (checked && slottedAssignment.task) {
-                                                                            const priorCount =
-                                                                                completionCountsMap.get(
-                                                                                    slottedAssignment.task.id,
-                                                                                ) ?? 0;
-                                                                            markDone.mutate({
-                                                                                assignmentId: slottedAssignment.id,
-                                                                                taskId: slottedAssignment.task.id,
-                                                                                taskType: slottedAssignment.task.type,
-                                                                                priorCompletionCount: priorCount,
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    className="size-4 rounded shrink-0"
-                                                                />
-                                                                <span
-                                                                    className={cn(
-                                                                        "text-xs font-medium truncate",
-                                                                        slottedAssignment.status === "done"
-                                                                            ? "line-through text-muted-foreground"
-                                                                            : "text-foreground",
-                                                                    )}
-                                                                >
-                                                                    {slottedAssignment.task.title}
-                                                                </span>
-                                                            </div>
+                                                    {/* Slotted Tasks List inside Free Block */}
+                                                    {slottedAssignments.length > 0 && (
+                                                        <div className="mt-1 flex flex-col gap-1.5">
+                                                            {slottedAssignments.map(
+                                                                (slottedAssignment) =>
+                                                                    slottedAssignment.task && (
+                                                                        <div
+                                                                            key={slottedAssignment.id}
+                                                                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-background border border-border/80 shadow-2xs"
+                                                                        >
+                                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                                <Checkbox
+                                                                                    checked={
+                                                                                        slottedAssignment.status ===
+                                                                                        "done"
+                                                                                    }
+                                                                                    onCheckedChange={(checked) => {
+                                                                                        if (
+                                                                                            checked &&
+                                                                                            slottedAssignment.task
+                                                                                        ) {
+                                                                                            const priorCount =
+                                                                                                completionCountsMap.get(
+                                                                                                    slottedAssignment
+                                                                                                        .task.id,
+                                                                                                ) ?? 0;
+                                                                                            markDone.mutate({
+                                                                                                assignmentId:
+                                                                                                    slottedAssignment.id,
+                                                                                                taskId: slottedAssignment
+                                                                                                    .task.id,
+                                                                                                taskType:
+                                                                                                    slottedAssignment
+                                                                                                        .task.type,
+                                                                                                priorCompletionCount:
+                                                                                                    priorCount,
+                                                                                            });
+                                                                                        }
+                                                                                    }}
+                                                                                    className="size-4 rounded shrink-0"
+                                                                                />
+                                                                                <span
+                                                                                    className={cn(
+                                                                                        "text-xs font-medium truncate",
+                                                                                        slottedAssignment.status ===
+                                                                                            "done"
+                                                                                            ? "line-through text-muted-foreground"
+                                                                                            : "text-foreground",
+                                                                                    )}
+                                                                                >
+                                                                                    {slottedAssignment.task.title}
+                                                                                </span>
+                                                                                {slottedAssignment.task
+                                                                                    .estimated_minutes && (
+                                                                                    <Badge
+                                                                                        variant="secondary"
+                                                                                        className="text-[10px] font-normal px-1.5 h-4 text-muted-foreground rounded-full"
+                                                                                    >
+                                                                                        {
+                                                                                            slottedAssignment.task
+                                                                                                .estimated_minutes
+                                                                                        }
+                                                                                        m
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
 
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon-xs"
-                                                                onClick={() =>
-                                                                    unassignFromSlot.mutate(slottedAssignment.id)
-                                                                }
-                                                                className="text-muted-foreground hover:text-destructive shrink-0"
-                                                                title="Unassign slot"
-                                                            >
-                                                                <XCircle className="size-3.5" />
-                                                            </Button>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon-xs"
+                                                                                onClick={() =>
+                                                                                    unassignFromSlot.mutate(
+                                                                                        slottedAssignment.id,
+                                                                                    )
+                                                                                }
+                                                                                className="text-muted-foreground hover:text-destructive shrink-0"
+                                                                                title="Unassign slot"
+                                                                            >
+                                                                                <XCircle className="size-3.5" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ),
+                                                            )}
                                                         </div>
                                                     )}
 
-                                                    {/* Free Slot Empty State Action */}
-                                                    {isFree && !slottedAssignment && (
-                                                        <div className="pt-1">
+                                                    {/* Free Slot Action and Remaining Time */}
+                                                    {isFree && (
+                                                        <div className="pt-1 flex items-center justify-between">
                                                             <Button
                                                                 variant="ghost"
                                                                 size="xs"
@@ -339,6 +377,11 @@ export function TodayPage() {
                                                                 <Plus data-icon="inline-start" className="size-3" />
                                                                 <span>Place task in slot</span>
                                                             </Button>
+                                                            {slottedAssignments.length > 0 && (
+                                                                <span className="text-[10px] font-mono text-muted-foreground">
+                                                                    {remainingMins}m left
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -349,7 +392,7 @@ export function TodayPage() {
                             )}
                         </div>
 
-                        {/* Unslotted Tasks Section / Desktop Right Panel */}
+                        {/* Unslotted Tasks Section */}
                         <div className="flex flex-col gap-3 w-full">
                             <Card className="border-border/80 shadow-2xs py-1">
                                 <CardHeader className="py-2.5 px-3.5 border-b border-border/50">
@@ -360,7 +403,6 @@ export function TodayPage() {
                                         </CardTitle>
 
                                         <div className="flex items-center gap-1.5">
-                                            {/* Direct button to navigate to Backlog */}
                                             <Link to="/backlog">
                                                 <Button
                                                     variant="ghost"
@@ -423,7 +465,7 @@ export function TodayPage() {
                 </div>
             </div>
 
-            {/* Quick Slot Picker Modal when clicking "+ Place task in slot" on a Free Block */}
+            {/* Quick Slot Picker Modal */}
             {selectedSlotBlock && (
                 <SlotTaskPickerModal
                     open={Boolean(selectedSlotBlock)}
@@ -432,6 +474,7 @@ export function TodayPage() {
                     }}
                     block={selectedSlotBlock}
                     unslottedAssignments={unslottedAssignments}
+                    dayAssignments={dayAssignments}
                     onSelectTask={(assignmentId) => {
                         assignToSlot.mutate(
                             { id: assignmentId, schedule_block_id: selectedSlotBlock.id },
@@ -460,6 +503,7 @@ interface SlotTaskPickerModalProps {
     onOpenChange: (open: boolean) => void;
     block: ScheduleBlock;
     unslottedAssignments: TaskAssignment[];
+    dayAssignments: TaskAssignment[];
     onSelectTask: (assignmentId: string) => void;
 }
 
@@ -468,14 +512,15 @@ function SlotTaskPickerModal({
     onOpenChange,
     block,
     unslottedAssignments,
+    dayAssignments,
     onSelectTask,
 }: SlotTaskPickerModalProps) {
-    const slotDuration = blockDurationMinutes(block);
+    const slotRemaining = getBlockRemainingMinutes(block, dayAssignments);
 
-    // Filter unslotted tasks that fit into this slot's duration
+    // Filter unslotted tasks that fit into this slot's remaining duration
     const validAssignments = unslottedAssignments.filter((a) => {
         const est = a.task?.estimated_minutes ?? 0;
-        return est <= slotDuration;
+        return est <= slotRemaining;
     });
 
     return (
@@ -484,7 +529,7 @@ function SlotTaskPickerModal({
                 <DialogHeader>
                     <DialogTitle>Place Task in Slot</DialogTitle>
                     <DialogDescription>
-                        Select a task for &quot;{block.title}&quot; ({slotDuration}m free).
+                        Select a task for &quot;{block.title}&quot; ({slotRemaining}m remaining).
                     </DialogDescription>
                 </DialogHeader>
 
@@ -502,7 +547,7 @@ function SlotTaskPickerModal({
                             <EmptyDescription className="text-[11px] max-w-xs">
                                 {unslottedAssignments.length === 0
                                     ? "Assign tasks to today from the Backlog first."
-                                    : `All unslotted tasks require more than ${slotDuration} minutes.`}
+                                    : `All unslotted tasks require more than ${slotRemaining} minutes.`}
                             </EmptyDescription>
                         </EmptyHeader>
                     </Empty>

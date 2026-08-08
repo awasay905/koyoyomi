@@ -1,11 +1,10 @@
 import { useMemo } from "react";
-import { Repeat } from "lucide-react";
+import { Repeat, ListChecks } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { ListChecks } from "lucide-react";
 
 import { useTasksQuery, useTaskCompletionsQuery } from "@/features/tasks/hooks";
 import { computeRecurringState } from "@/features/tasks/recurrence";
@@ -16,12 +15,9 @@ import { useNow } from "@/hooks/useNow";
 interface TaskPickerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    date: string; // YYYY-MM-DD — the day panel this picker was opened from
+    date: string; // YYYY-MM-DD
 }
 
-// Shared "backlog picker filtered to unassigned tasks" (§11), used by the
-// Week day panel's "Assign a task" button. Creates a day-level assignment
-// for the chosen task on the given date.
 export function TaskPickerDialog({ open, onOpenChange, date }: TaskPickerDialogProps) {
     const now = useNow();
     const { data: tasks = [], isLoading: isTasksLoading } = useTasksQuery();
@@ -32,15 +28,28 @@ export function TaskPickerDialog({ open, onOpenChange, date }: TaskPickerDialogP
     const isLoading = isTasksLoading || isAssignmentsLoading;
 
     const unassignedTasks = useMemo(() => {
-        const assignedTaskIds = new Set(pendingAssignments.map((a) => a.task_id));
+        // Pending task IDs specifically on this date
+        const assignedTaskIdsOnDate = new Set(
+            pendingAssignments.filter((a) => a.assigned_date === date).map((a) => a.task_id),
+        );
+
+        // Pending task IDs across all dates
+        const allAssignedTaskIds = new Set(pendingAssignments.map((a) => a.task_id));
 
         return tasks.filter((t) => {
-            if (assignedTaskIds.has(t.id)) return false;
-            if (t.type === "one_time") return t.status === "active";
+            if (t.type === "one_time") {
+                if (t.status !== "active") return false;
+                return !allAssignedTaskIds.has(t.id);
+            }
+
+            // Recurring tasks
             const state = computeRecurringState(t, completions, now);
-            return !state.isFinished;
+            if (state.isFinished) return false;
+
+            // Exclude recurring task if it is ALREADY assigned to THIS date
+            return !assignedTaskIdsOnDate.has(t.id);
         });
-    }, [tasks, completions, pendingAssignments, now]);
+    }, [tasks, completions, pendingAssignments, date, now]);
 
     const handleSelect = (taskId: string) => {
         assignToDay.mutate({ task_id: taskId, assigned_date: date }, { onSuccess: () => onOpenChange(false) });
@@ -67,7 +76,7 @@ export function TaskPickerDialog({ open, onOpenChange, date }: TaskPickerDialogP
                             </EmptyMedia>
                             <EmptyTitle className="text-xs">Nothing unassigned</EmptyTitle>
                             <EmptyDescription className="text-[11px] max-w-xs">
-                                Every backlog task is already assigned somewhere.
+                                Every backlog task is already assigned for this date.
                             </EmptyDescription>
                         </EmptyHeader>
                     </Empty>

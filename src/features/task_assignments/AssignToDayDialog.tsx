@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 
 import {
     Dialog,
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 
 import type { Task } from "@/features/tasks/types";
-import { useAssignTaskToDay } from "./hooks";
+import { useAssignTaskToDay, usePendingAssignmentsQuery } from "./hooks";
 import { toDateString } from "./utils";
 
 interface AssignToDayDialogProps {
@@ -22,14 +22,22 @@ interface AssignToDayDialogProps {
     task: Task;
 }
 
-// Shared date picker for Step 1 of §7 ("Assign to a day"), triggered from a
-// task's detail sheet or quick actions.
 export function AssignToDayDialog({ open, onOpenChange, task }: AssignToDayDialogProps) {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    const { data: pendingAssignments = [] } = usePendingAssignmentsQuery();
     const assignToDay = useAssignTaskToDay();
 
+    const selectedDateStr = selectedDate ? toDateString(selectedDate) : null;
+
+    const isAlreadyAssignedToDate = useMemo(() => {
+        if (!selectedDateStr) return false;
+        return pendingAssignments.some(
+            (a) => a.task_id === task.id && a.assigned_date === selectedDateStr && a.status === "pending",
+        );
+    }, [pendingAssignments, task.id, selectedDateStr]);
+
     const handleConfirm = () => {
-        if (!selectedDate) return;
+        if (!selectedDate || isAlreadyAssignedToDate) return;
         assignToDay.mutate(
             { task_id: task.id, assigned_date: toDateString(selectedDate) },
             { onSuccess: () => onOpenChange(false) },
@@ -47,8 +55,15 @@ export function AssignToDayDialog({ open, onOpenChange, task }: AssignToDayDialo
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-2">
                     <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} autoFocus />
+
+                    {isAlreadyAssignedToDate && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium pt-1">
+                            <AlertCircle className="size-3.5" />
+                            <span>This task is already assigned to this date.</span>
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="pt-2 gap-2 sm:gap-0">
@@ -59,7 +74,7 @@ export function AssignToDayDialog({ open, onOpenChange, task }: AssignToDayDialo
                         type="button"
                         size="sm"
                         onClick={handleConfirm}
-                        disabled={!selectedDate || assignToDay.isPending}
+                        disabled={!selectedDate || isAlreadyAssignedToDate || assignToDay.isPending}
                     >
                         {assignToDay.isPending ? (
                             <>
