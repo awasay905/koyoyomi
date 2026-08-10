@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FieldGroup, Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { FieldGroup, Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 
 import { dayTypeSchema, type DayTypeValues } from "./schemas";
@@ -32,13 +32,7 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
     const addDayType = useAddDayType();
     const updateDayType = useUpdateDayType();
 
-    const {
-        register,
-        handleSubmit,
-        control,
-        reset,
-        formState: { errors },
-    } = useForm<DayTypeValues>({
+    const form = useForm<DayTypeValues>({
         resolver: zodResolver(dayTypeSchema),
         defaultValues: { name: "", color: DAY_TYPE_COLORS[0] },
     });
@@ -46,11 +40,11 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
     useEffect(() => {
         if (!open) return;
         if (dayTypeToEdit) {
-            reset({ name: dayTypeToEdit.name, color: dayTypeToEdit.color ?? DAY_TYPE_COLORS[0] });
+            form.reset({ name: dayTypeToEdit.name, color: dayTypeToEdit.color ?? DAY_TYPE_COLORS[0] });
         } else {
-            reset({ name: "", color: DAY_TYPE_COLORS[Math.floor(Math.random() * DAY_TYPE_COLORS.length)] });
+            form.reset({ name: "", color: DAY_TYPE_COLORS[Math.floor(Math.random() * DAY_TYPE_COLORS.length)] });
         }
-    }, [open, dayTypeToEdit, reset]);
+    }, [open, dayTypeToEdit, form]);
 
     const isPending = addDayType.isPending || updateDayType.isPending;
 
@@ -68,54 +62,53 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
-                    <DialogTitle>{isEditing ? "Edit Day-Type" : "New Day-Type"}</DialogTitle>
+                    <DialogTitle>{isEditing ? "Edit Template" : "New Template"}</DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Rename or change the colour swatch." : "Create a reusable schedule template."}
+                        {isEditing ? "Update the name or colour swatch." : "Create a reusable schedule identifier."}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 py-1">
-                    <FieldGroup className="gap-3.5">
-                        <Field data-invalid={Boolean(errors.name)}>
-                            <FieldLabel htmlFor="day_type_name">Name</FieldLabel>
-                            <Input
-                                id="day_type_name"
-                                placeholder="e.g., Office, Home, Weekend"
-                                aria-invalid={Boolean(errors.name)}
-                                {...register("name")}
-                                className="h-9 text-xs bg-background"
-                                autoFocus
-                            />
-                            {errors.name && (
-                                <FieldDescription className="text-destructive text-[11px]">
-                                    {errors.name.message}
-                                </FieldDescription>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6 py-2">
+                    <FieldGroup className="gap-5">
+                        <Controller
+                            control={form.control}
+                            name="name"
+                            render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                                    <Input
+                                        {...field}
+                                        id={field.name}
+                                        placeholder="e.g., Office, Home, Weekend"
+                                        aria-invalid={fieldState.invalid}
+                                        autoFocus
+                                    />
+                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
                             )}
-                        </Field>
+                        />
 
                         <Field>
                             <FieldLabel>Colour Swatch</FieldLabel>
                             <Controller
-                                control={control}
+                                control={form.control}
                                 name="color"
                                 render={({ field }) => (
-                                    <div className="flex flex-wrap gap-2 pt-1">
+                                    <div className="grid grid-cols-7 gap-2.5 pt-1.5 w-full">
                                         {DAY_TYPE_COLORS.map((c) => (
                                             <button
                                                 key={c}
                                                 type="button"
                                                 onClick={() => field.onChange(c)}
                                                 className={cn(
-                                                    "size-6 rounded-full flex items-center justify-center transition-all active:scale-95 ring-1 ring-border/60 hover:scale-105",
+                                                    "aspect-square w-full rounded-md flex items-center justify-center transition-colors ring-1 ring-border/50 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                                                     field.value === c &&
-                                                        "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105",
+                                                        "ring-2 ring-primary ring-offset-2 ring-offset-background",
                                                 )}
                                                 style={{ backgroundColor: c }}
                                                 aria-label={`Select colour ${c}`}
                                             >
-                                                {field.value === c && (
-                                                    <Check className="size-3 text-white drop-shadow-sm" />
-                                                )}
+                                                {field.value === c && <Check className="size-4 text-white" />}
                                             </button>
                                         ))}
                                     </div>
@@ -124,17 +117,16 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
                         </Field>
                     </FieldGroup>
 
-                    <DialogFooter className="pt-2 gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={isPending}
-                            size="sm"
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isPending} size="sm">
+                        <Button type="submit" disabled={isPending}>
                             {isPending ? (
                                 <>
                                     <Loader2 data-icon="inline-start" className="animate-spin" />
