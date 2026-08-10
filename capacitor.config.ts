@@ -5,6 +5,12 @@ const config: CapacitorConfig = {
     appName: "koyoyomi",
     webDir: "dist",
     plugins: {
+        LocalNotifications: {
+            smallIcon: "ic_stat_icon_config_sample", // Default fallback icon
+            iconColor: "#202020",
+            sound: "beep.wav",
+        },
+
         SplashScreen: {
             launchShowDuration: 2000,
             launchAutoHide: true,

@@ -8,6 +8,7 @@ import {
     CalendarDaysIcon,
     CalendarRangeIcon,
     ChevronLeftIcon,
+    BellIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,33 @@ export function SettingsPage() {
                                 </>
                             )}
                         </Button>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Appearance Settings */}
+            <div className="flex flex-col gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Notifications
+                </h2>
+                <Card className="shadow-2xs border-border/80 py-0">
+                    <CardContent className="flex items-center justify-between gap-4">
+                        <RouterButton
+                            to="/settings/notifications"
+                            variant="ghost"
+                            className="w-full justify-between h-auto py-3 px-3.5 rounded-md hover:bg-accent/80 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <BellIcon className="text-muted-foreground shrink-0 size-4" />
+                                <div className="flex flex-col text-left">
+                                    <span className="font-medium text-sm leading-tight">Scheduled Notifications</span>
+                                    <span className="text-xs text-muted-foreground font-normal">
+                                        Inspect pending OS alarms & adhans
+                                    </span>
+                                </div>
+                            </div>
+                            <ChevronRightIcon className="text-muted-foreground shrink-0 size-4" />
+                        </RouterButton>
                     </CardContent>
                 </Card>
             </div>

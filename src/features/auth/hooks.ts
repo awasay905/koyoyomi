@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { AuthUser } from "./types";
 import { supabase } from "@/lib/supabase";
 import { useNavigate, useRouter } from "@tanstack/react-router";
+import { clearAllLocalNotifications, rescheduleAllLocalNotifications } from "@/lib/notifications";
 
 export function useAuthUser() {
     const [user, setUser] = useState<AuthUser | null>(null);
@@ -39,8 +40,10 @@ export function useAuthUser() {
                     email: session.user.email!,
                     name: session.user.user_metadata?.display_name || session.user.user_metadata?.name || "",
                 });
+                rescheduleAllLocalNotifications();
             } else {
                 setUser(null);
+                clearAllLocalNotifications();
             }
 
             router.invalidate();
@@ -66,6 +69,7 @@ export function useSignIn() {
             setError(authError.message);
         } else {
             await router.invalidate();
+            rescheduleAllLocalNotifications();
             navigate({ to: "/today" });
         }
         setLoading(false);
@@ -96,6 +100,7 @@ export function useSignUp() {
             setError(authError.message);
         } else {
             await router.invalidate();
+            clearAllLocalNotifications(); // In case old user sign out/expires and new user signs up
             navigate({ to: "/today" });
         }
         setLoading(false);
@@ -111,6 +116,7 @@ export function useSignOut() {
     return async () => {
         await supabase.auth.signOut();
         await router.invalidate();
+        clearAllLocalNotifications();
         navigate({ to: "/auth/login" });
     };
 }
