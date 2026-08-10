@@ -14,6 +14,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAboutRouteImport } from './routes/_authenticated/about'
 import { Route as AuthenticatedBacklogRouteImport } from './routes/_authenticated/backlog'
 import { Route as AuthenticatedShoppingRouteImport } from './routes/_authenticated/shopping'
+import { Route as AuthenticatedSummaryRouteImport } from './routes/_authenticated/summary'
 import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
 import { Route as AuthenticatedWeekRouteImport } from './routes/_authenticated/week'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
@@ -46,6 +47,11 @@ const AuthenticatedBacklogRoute = AuthenticatedBacklogRouteImport.update({
 const AuthenticatedShoppingRoute = AuthenticatedShoppingRouteImport.update({
   id: '/shopping',
   path: '/shopping',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSummaryRoute = AuthenticatedSummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTodayRoute = AuthenticatedTodayRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AuthenticatedAboutRoute
   '/backlog': typeof AuthenticatedBacklogRoute
   '/shopping': typeof AuthenticatedShoppingRoute
+  '/summary': typeof AuthenticatedSummaryRoute
   '/today': typeof AuthenticatedTodayRoute
   '/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/about': typeof AuthenticatedAboutRoute
   '/backlog': typeof AuthenticatedBacklogRoute
   '/shopping': typeof AuthenticatedShoppingRoute
+  '/summary': typeof AuthenticatedSummaryRoute
   '/today': typeof AuthenticatedTodayRoute
   '/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/_authenticated/about': typeof AuthenticatedAboutRoute
   '/_authenticated/backlog': typeof AuthenticatedBacklogRoute
   '/_authenticated/shopping': typeof AuthenticatedShoppingRoute
+  '/_authenticated/summary': typeof AuthenticatedSummaryRoute
   '/_authenticated/today': typeof AuthenticatedTodayRoute
   '/_authenticated/week': typeof AuthenticatedWeekRoute
   '/auth/login': typeof AuthLoginRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/backlog'
     | '/shopping'
+    | '/summary'
     | '/today'
     | '/week'
     | '/auth/login'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/backlog'
     | '/shopping'
+    | '/summary'
     | '/today'
     | '/week'
     | '/auth/login'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_authenticated/about'
     | '/_authenticated/backlog'
     | '/_authenticated/shopping'
+    | '/_authenticated/summary'
     | '/_authenticated/today'
     | '/_authenticated/week'
     | '/auth/login'
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/shopping'
       fullPath: '/shopping'
       preLoaderRoute: typeof AuthenticatedShoppingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/summary': {
+      id: '/_authenticated/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof AuthenticatedSummaryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/today': {
@@ -308,6 +327,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAboutRoute: typeof AuthenticatedAboutRoute
   AuthenticatedBacklogRoute: typeof AuthenticatedBacklogRoute
   AuthenticatedShoppingRoute: typeof AuthenticatedShoppingRoute
+  AuthenticatedSummaryRoute: typeof AuthenticatedSummaryRoute
   AuthenticatedTodayRoute: typeof AuthenticatedTodayRoute
   AuthenticatedWeekRoute: typeof AuthenticatedWeekRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -322,6 +342,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAboutRoute: AuthenticatedAboutRoute,
   AuthenticatedBacklogRoute: AuthenticatedBacklogRoute,
   AuthenticatedShoppingRoute: AuthenticatedShoppingRoute,
+  AuthenticatedSummaryRoute: AuthenticatedSummaryRoute,
   AuthenticatedTodayRoute: AuthenticatedTodayRoute,
   AuthenticatedWeekRoute: AuthenticatedWeekRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
