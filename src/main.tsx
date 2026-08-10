@@ -41,6 +41,7 @@ const NOTIFICATION_QUERY_KEYS = [
     "weekly_pattern",
     "day_overrides",
     "schedule_blocks",
+    "reminders",
 ];
 
 // Debounce helper to avoid multiple rapid reschedules

@@ -157,13 +157,17 @@ export async function rescheduleAllLocalNotifications() {
     // ── C. SYSTEM REMINDERS (Next 7 Days) ─────────────────────────
     const { data: reminders } = await supabase.from("reminders").select("*").eq("is_enabled", true);
     if (reminders) {
-        // Get day types & pattern to evaluate "Plan tomorrow"
+        // Fetch day types & pattern for "Plan tomorrow", and active tasks for "Stale backlog"
         const { data: pattern } = await supabase.from("weekly_pattern").select("*");
         const { data: overrides } = await supabase
             .from("day_overrides")
             .select("*")
             .gte("the_date", startDateStr)
             .lte("the_date", endDateStr);
+        const { data: activeTasks } = await supabase
+            .from("tasks")
+            .select("id, created_at, status, type")
+            .eq("status", "active");
 
         for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
             const targetDate = new Date(now);
@@ -178,7 +182,6 @@ export async function rescheduleAllLocalNotifications() {
                 if (fireTime <= now) continue;
 
                 if (reminder.reminder_type === "plan_next_day") {
-                    // Check if tomorrow has a day-type override set
                     const tomorrow = new Date(targetDate);
                     tomorrow.setDate(targetDate.getDate() + 1);
                     const tomorrowStr = toDateString(tomorrow);
@@ -191,6 +194,25 @@ export async function rescheduleAllLocalNotifications() {
                             id: stringToNumericId(`reminder-plan-${targetDateStr}`),
                             title: "Plan Tomorrow",
                             body: "You haven't set a day-type for tomorrow yet.",
+                            schedule: { at: fireTime },
+                            channelId: "reminders",
+                        });
+                    }
+                } else if (reminder.reminder_type === "stale_backlog") {
+                    const config = (reminder.config as { idle_days_threshold?: number }) ?? {};
+                    const thresholdDays = config.idle_days_threshold ?? 3;
+                    const thresholdTime = targetDate.getTime() - thresholdDays * 24 * 60 * 60 * 1000;
+
+                    // Check if any active task was created prior to the threshold
+                    const hasStaleTasks = (activeTasks ?? []).some(
+                        (t) => new Date(t.created_at).getTime() < thresholdTime,
+                    );
+
+                    if (hasStaleTasks) {
+                        notifications.push({
+                            id: stringToNumericId(`reminder-stale-${targetDateStr}`),
+                            title: "Stale Backlog",
+                            body: `You have tasks that have been untouched for over ${thresholdDays} days.`,
                             schedule: { at: fireTime },
                             channelId: "reminders",
                         });

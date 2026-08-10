@@ -22,6 +22,7 @@ import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsPrayer_timesRouteImport } from './routes/_authenticated/settings/prayer_times'
+import { Route as AuthenticatedSettingsRemindersRouteImport } from './routes/_authenticated/settings/reminders'
 import { Route as AuthenticatedSettingsWeekly_patternRouteImport } from './routes/_authenticated/settings/weekly_pattern'
 import { Route as AuthenticatedSettingsDay_typesIndexRouteImport } from './routes/_authenticated/settings/day_types/index'
 import { Route as AuthenticatedSettingsDay_typesDayTypeIdRouteImport } from './routes/_authenticated/settings/day_types/$dayTypeId'
@@ -93,6 +94,12 @@ const AuthenticatedSettingsPrayer_timesRoute =
     path: '/settings/prayer_times',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSettingsRemindersRoute =
+  AuthenticatedSettingsRemindersRouteImport.update({
+    id: '/settings/reminders',
+    path: '/settings/reminders',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSettingsWeekly_patternRoute =
   AuthenticatedSettingsWeekly_patternRouteImport.update({
     id: '/settings/weekly_pattern',
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/settings/reminders': typeof AuthenticatedSettingsRemindersRoute
   '/settings/weekly_pattern': typeof AuthenticatedSettingsWeekly_patternRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
@@ -141,6 +149,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/settings/reminders': typeof AuthenticatedSettingsRemindersRoute
   '/settings/weekly_pattern': typeof AuthenticatedSettingsWeekly_patternRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
@@ -160,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/prayer_times': typeof AuthenticatedSettingsPrayer_timesRoute
+  '/_authenticated/settings/reminders': typeof AuthenticatedSettingsRemindersRoute
   '/_authenticated/settings/weekly_pattern': typeof AuthenticatedSettingsWeekly_patternRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/day_types/$dayTypeId': typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/settings/notifications'
     | '/settings/prayer_times'
+    | '/settings/reminders'
     | '/settings/weekly_pattern'
     | '/settings/'
     | '/settings/day_types/$dayTypeId'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/notifications'
     | '/settings/prayer_times'
+    | '/settings/reminders'
     | '/settings/weekly_pattern'
     | '/settings'
     | '/settings/day_types/$dayTypeId'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/prayer_times'
+    | '/_authenticated/settings/reminders'
     | '/_authenticated/settings/weekly_pattern'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/day_types/$dayTypeId'
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPrayer_timesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/reminders': {
+      id: '/_authenticated/settings/reminders'
+      path: '/settings/reminders'
+      fullPath: '/settings/reminders'
+      preLoaderRoute: typeof AuthenticatedSettingsRemindersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/settings/weekly_pattern': {
       id: '/_authenticated/settings/weekly_pattern'
       path: '/settings/weekly_pattern'
@@ -353,6 +373,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsPrayer_timesRoute: typeof AuthenticatedSettingsPrayer_timesRoute
+  AuthenticatedSettingsRemindersRoute: typeof AuthenticatedSettingsRemindersRoute
   AuthenticatedSettingsWeekly_patternRoute: typeof AuthenticatedSettingsWeekly_patternRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedSettingsDay_typesDayTypeIdRoute: typeof AuthenticatedSettingsDay_typesDayTypeIdRoute
@@ -371,6 +392,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedSettingsNotificationsRoute,
   AuthenticatedSettingsPrayer_timesRoute:
     AuthenticatedSettingsPrayer_timesRoute,
+  AuthenticatedSettingsRemindersRoute: AuthenticatedSettingsRemindersRoute,
   AuthenticatedSettingsWeekly_patternRoute:
     AuthenticatedSettingsWeekly_patternRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
