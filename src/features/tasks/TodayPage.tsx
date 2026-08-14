@@ -48,6 +48,9 @@ import { DayAssignmentRow } from "@/features/task_assignments/DayAssignmentRow";
 import type { TaskAssignment } from "@/features/task_assignments/types";
 import type { ScheduleBlock } from "@/features/day_types/types";
 
+import type { Task } from "@/features/tasks/types";
+import { QuickSlotPicker } from "@/features/task_assignments/QuickSlotPicker";
+
 function toDateString(date: Date): string {
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -120,6 +123,28 @@ export function TodayPage() {
 
         return { slottedAssignmentsGrouped: slottedGrouped, unslottedAssignments: unslotted };
     }, [dayAssignments]);
+
+    const needsAttention = React.useMemo(() => {
+        const assignedTodayTaskIds = new Set(dayAssignments.map((a) => a.task_id));
+        const windowMs = 48 * 60 * 60 * 1000; // "near deadline" = due within 48h
+
+        return tasks
+            .filter((t) => !assignedTodayTaskIds.has(t.id))
+            .map((t) => {
+                if (t.type === "one_time") {
+                    if (t.status !== "active" || !t.deadline) return null;
+                    return { task: t, dueAt: new Date(t.deadline) };
+                }
+                const state = computeRecurringState(t, completions, nowMs);
+                if (state.isFinished || !state.nextDue) return null;
+                return { task: t, dueAt: state.nextDue };
+            })
+            .filter((r): r is { task: Task; dueAt: Date } => r !== null)
+            .filter((r) => r.dueAt.getTime() < nowMs + windowMs)
+            .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+    }, [tasks, completions, dayAssignments, nowMs]);
+
+    const [taskForQuickAssign, setTaskForQuickAssign] = React.useState<Task | null>(null);
 
     // Calculate overdue tasks count
     const overdueCount = React.useMemo(() => {
@@ -198,6 +223,49 @@ export function TodayPage() {
                         </Link>
                     </AlertDescription>
                 </Alert>
+            )}
+            {needsAttention.length > 0 && (
+                <section className="flex flex-col gap-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                        Needs Attention
+                    </h2>
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {needsAttention.map(({ task, dueAt }, index) => (
+                                <div key={task.id} className="flex flex-col">
+                                    <div className="flex items-center justify-between gap-3 p-3 px-4">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-sm font-medium text-foreground truncate">
+                                                {task.title}
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    "text-[11px] font-mono",
+                                                    dueAt.getTime() < nowMs
+                                                        ? "text-destructive"
+                                                        : "text-muted-foreground",
+                                                )}
+                                            >
+                                                {dueAt.getTime() < nowMs
+                                                    ? "Overdue"
+                                                    : `Due ${dueAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                                            </span>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setTaskForQuickAssign(task)}
+                                            className="h-7 text-xs px-2.5"
+                                        >
+                                            Slot Today
+                                        </Button>
+                                    </div>
+                                    {index < needsAttention.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </section>
             )}
 
             {/* Schedule Timeline Section */}
@@ -478,6 +546,17 @@ export function TodayPage() {
                 currentDayTypeId={dayTypeId}
                 hasOverride={dayTypeSource === "override"}
             />
+
+            {taskForQuickAssign && (
+                <QuickSlotPicker
+                    open={Boolean(taskForQuickAssign)}
+                    onOpenChange={(open) => {
+                        if (!open) setTaskForQuickAssign(null);
+                    }}
+                    task={taskForQuickAssign}
+                    date={todayStr}
+                />
+            )}
         </div>
     );
 }

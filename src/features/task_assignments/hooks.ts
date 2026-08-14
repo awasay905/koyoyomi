@@ -187,3 +187,46 @@ export function useMarkAssignmentDone() {
         },
     });
 }
+
+// Creates (or reuses) today's pending assignment and drops it straight into a
+// slot in one call — used by Today's "needs attention" quick-assign action.
+export function useQuickAssignToSlot() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async ({
+            task_id,
+            assigned_date,
+            schedule_block_id,
+        }: {
+            task_id: string;
+            assigned_date: string;
+            schedule_block_id: string;
+        }) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User not authenticated");
+
+            const { data: existing } = await supabase
+                .from("task_assignments")
+                .select(ASSIGNMENT_SELECT)
+                .eq("task_id", task_id)
+                .eq("assigned_date", assigned_date)
+                .eq("status", "pending")
+                .maybeSingle();
+
+            if (existing) {
+                const { error } = await supabase
+                    .from("task_assignments")
+                    .update({ schedule_block_id })
+                    .eq("id", existing.id);
+                if (error) throw error;
+                return;
+            }
+
+            const { error } = await supabase
+                .from("task_assignments")
+                .insert({ task_id, assigned_date, schedule_block_id, user_id: user.id });
+            if (error) throw error;
+        },
+        onSuccess: () => invalidateAssignmentQueries(qc),
+    });
+}

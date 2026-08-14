@@ -2,10 +2,12 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
+import { useAutoAssignRecurringTasks } from "@/features/task_assignments/autoAssign";
 
 // This is your actual UI Shell
 export function AppShell() {
     const isMobile = useIsMobile();
+    useAutoAssignRecurringTasks();
 
     return (
         <div className="flex h-screen bg-background overflow-hidden">
