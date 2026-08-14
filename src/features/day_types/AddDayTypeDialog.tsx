@@ -68,7 +68,7 @@ export function AddDayTypeDialog({ open, onOpenChange, dayTypeToEdit }: AddDayTy
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6 py-2">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6 pt-2">
                     <FieldGroup className="gap-5">
                         <Controller
                             control={form.control}

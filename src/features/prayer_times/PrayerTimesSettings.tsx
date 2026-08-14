@@ -1,51 +1,26 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import {
-    Clock,
-    Plus,
-    Minus,
-    Trash2,
-    Info,
-    Sunrise,
-    Sun,
-    Sunset,
-    Moon,
-    CloudSun,
-    Dumbbell,
-    Coffee,
-    Briefcase,
-    Activity,
-    Pencil,
-    Check,
-    X,
-    Bell,
-    Loader2,
-    ChevronLeft,
-} from "lucide-react";
+import { ChevronLeft, Plus, Clock, MoreHorizontal, Pencil, Trash2, Bell, BellOff, Info } from "lucide-react";
 
 import { usePrayerTimes } from "./hooks";
-import { createCustomPrayerSchema } from "./schemas";
 import { type PrayerTime } from "./types";
+import { PrayerTimeDialog } from "./PrayerTimeDialog";
+import { PrayerIcon } from "./Icons";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 
-// Format 24h string ("05:15" or "17:30:00") into 12h display with AM/PM
-function format12HourTime(timeStr: string): { time: string; period: string } {
+function format12Hour(timeStr: string): { time: string; period: string } {
     if (!timeStr) return { time: "--:--", period: "" };
     const parts = timeStr.split(":");
     let hours = parseInt(parts[0], 10);
@@ -62,55 +37,9 @@ function format12HourTime(timeStr: string): { time: string; period: string } {
     };
 }
 
-// Format raw "HH:MM:SS" or "H:M" into clean "HH:MM" for time inputs
-function formatTimeInput(timeStr: string): string {
-    if (!timeStr) return "07:00";
-    const parts = timeStr.split(":");
-    const hours = (parts[0] || "00").padStart(2, "0");
-    const minutes = (parts[1] || "00").padStart(2, "0");
-    return `${hours}:${minutes}`;
-}
-
-// Contextual icon selector
-function getPrayerIcon(name: string, isSystem: boolean) {
-    const cleanName = name.toLowerCase().trim();
-
-    if (isSystem) {
-        if (cleanName.includes("fajr") || cleanName.includes("sunrise") || cleanName.includes("shuruq")) return Sunrise;
-        if (cleanName.includes("dhuhr")) return Sun;
-        if (cleanName.includes("asr")) return CloudSun;
-        if (cleanName.includes("maghrib")) return Sunset;
-        if (cleanName.includes("isha")) return Moon;
-        return Clock;
-    }
-
-    if (cleanName.includes("gym") || cleanName.includes("workout") || cleanName.includes("fit")) return Dumbbell;
-    if (cleanName.includes("work") || cleanName.includes("office") || cleanName.includes("job")) return Briefcase;
-    if (cleanName.includes("coffee") || cleanName.includes("tea") || cleanName.includes("lunch")) return Coffee;
-    if (cleanName.includes("sleep") || cleanName.includes("bed")) return Moon;
-    if (cleanName.includes("med") || cleanName.includes("pill") || cleanName.includes("health")) return Activity;
-
-    return Clock;
-}
-
-function PrayerIcon({
-    name,
-    isSystem,
-    className,
-    strokeWidth = 1.75,
-}: {
-    name: string;
-    isSystem: boolean;
-    className?: string;
-    strokeWidth?: number;
-}) {
-    const icon = getPrayerIcon(name, isSystem);
-    return React.createElement(icon, { strokeWidth, className });
-}
-
 export function PrayerTimesSettings() {
     const {
-        data: prayerTimes,
+        data: prayerTimes = [],
         isLoading,
         isError,
         updatePrayer,
@@ -119,544 +48,253 @@ export function PrayerTimesSettings() {
     } = usePrayerTimes();
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [customName, setCustomName] = React.useState("");
-    const [customTime, setCustomTime] = React.useState("07:00");
-    const [customNotify, setCustomNotify] = React.useState(false);
-    const [customLead, setCustomLead] = React.useState(5);
-    const [formError, setFormError] = React.useState<string | null>(null);
+    const [selectedPrayer, setSelectedPrayer] = React.useState<PrayerTime | null>(null);
 
-    const handleUpdate = (prayer: PrayerTime, updates: Partial<Omit<PrayerTime, "id">>) => {
-        updatePrayer.mutate({ id: prayer.id, ...updates });
+    const handleOpenCreate = () => {
+        setSelectedPrayer(null);
+        setIsDialogOpen(true);
     };
 
-    const handleAddCustom = (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError(null);
-
-        const trimmedName = customName.trim();
-        const validation = createCustomPrayerSchema.safeParse({
-            name: trimmedName,
-            time: customTime,
-            notify_enabled: customNotify,
-            notify_lead_minutes: customLead,
-        });
-
-        if (!validation.success) {
-            setFormError(validation.error.issues[0]?.message || "Invalid input");
-            return;
-        }
-
-        addCustomPrayer.mutate(
-            {
-                name: trimmedName,
-                time: `${customTime}:00`,
-                notify_enabled: customNotify,
-                notify_lead_minutes: customLead,
-            },
-            {
-                onSuccess: () => {
-                    setIsDialogOpen(false);
-                    setCustomName("");
-                    setCustomTime("07:00");
-                    setCustomNotify(false);
-                    setCustomLead(5);
-                },
-            },
-        );
+    const handleOpenEdit = (prayer: PrayerTime) => {
+        setSelectedPrayer(prayer);
+        setIsDialogOpen(true);
     };
 
-    if (isLoading) {
-        return (
-            <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                    <Skeleton className="h-7 w-48" />
-                    <Skeleton className="h-4 w-72" />
-                </div>
-                <div className="flex flex-col gap-2 mt-2">
-                    <Skeleton className="h-4 w-20" />
-                    <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="p-3.5 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                    <Skeleton className="size-9 rounded-lg" />
-                                    <div className="flex flex-col gap-1.5">
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-3 w-16" />
-                                    </div>
-                                </div>
-                                <Skeleton className="h-5 w-16 rounded-md" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (isError) {
-        return (
-            <Alert variant="destructive" className="max-w-2xl mx-auto my-6">
-                <Info data-icon="inline-start" />
-                <AlertDescription>Failed to fetch prayer settings. Please try again.</AlertDescription>
-            </Alert>
-        );
-    }
-
-    const systemPrayers = prayerTimes?.filter((p) => p.is_system) ?? [];
-    const customPrayers = prayerTimes?.filter((p) => !p.is_system) ?? [];
+    const systemPrayers = prayerTimes.filter((p) => p.is_system);
+    const customPrayers = prayerTimes.filter((p) => !p.is_system);
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6 pb-28">
-            {/* Header Section with Back Navigation */}
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-2 min-w-0">
+        <div className="mx-auto flex max-w-lg flex-col gap-8 px-4 py-8 pb-28">
+            {/* Header with Back Navigation */}
+            <header className="flex items-start min-w-0">
+                <div className="flex items-start gap-2 min-w-0 w-full">
                     <Link
                         to="/settings"
-                        className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-1.5 mt-0.5"
+                        className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-2 -mt-1"
                         aria-label="Back to Settings"
                     >
-                        <ChevronLeft data-icon="inline-start" />
+                        <ChevronLeft />
                     </Link>
 
-                    <div className="flex flex-col gap-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-lg font-semibold tracking-tight text-foreground">
-                                Prayer & Reference Times
-                            </h1>
-                            {prayerTimes && (
-                                <Badge
-                                    variant="secondary"
-                                    className="rounded-full px-2 text-[11px] font-medium text-muted-foreground bg-muted"
-                                >
-                                    {prayerTimes.length}
-                                </Badge>
-                            )}
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Configure prayer times for adhan notifications and custom alerts.
+                    <div className="flex flex-col w-full min-w-0">
+                        <h1 className="text-xl font-bold tracking-tight truncate leading-none">
+                            Prayer & Reference Times
+                        </h1>
+                        <p className="text-sm text-muted-foreground truncate mt-1.5">
+                            Manage adhans and custom schedule markers.
                         </p>
                     </div>
                 </div>
+            </header>
 
-                {/* Add Custom Time Modal Trigger */}
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="sm:max-w-md">
-                        <form onSubmit={handleAddCustom}>
-                            <DialogHeader>
-                                <DialogTitle>Add Custom Reference Time</DialogTitle>
-                                <DialogDescription>
-                                    Add custom reference points like gym opening or office hours to display alongside
-                                    your day templates.
-                                </DialogDescription>
-                            </DialogHeader>
+            {isError && (
+                <Alert variant="destructive">
+                    <Info data-icon="inline-start" />
+                    <AlertDescription>Failed to fetch reference times. Please try again.</AlertDescription>
+                </Alert>
+            )}
 
-                            <FieldGroup className="py-4 flex flex-col gap-4">
-                                {formError && (
-                                    <Alert variant="destructive" className="py-2 text-xs">
-                                        <AlertDescription>{formError}</AlertDescription>
-                                    </Alert>
-                                )}
+            {/* Section 1: System Prayers */}
+            <section className="flex flex-col gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    System Prayers
+                </h2>
 
-                                <Field>
-                                    <FieldLabel htmlFor="custom-name">Name</FieldLabel>
-                                    <Input
-                                        id="custom-name"
-                                        placeholder="e.g. Gym Open, Office Start"
-                                        value={customName}
-                                        onChange={(e) => setCustomName(e.target.value)}
-                                        required
-                                        maxLength={50}
-                                        className="h-9 text-xs"
-                                    />
-                                </Field>
+                {isLoading ? (
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="flex flex-col">
+                                    <div className="flex items-center justify-between p-3.5 px-4 h-15">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="size-8.5 rounded-lg" />
+                                            <div className="flex flex-col gap-1.5">
+                                                <Skeleton className="h-4 w-20 rounded-md" />
+                                                <Skeleton className="h-3 w-14 rounded-md" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-4 w-16 rounded-md" />
+                                    </div>
+                                    {i < 4 && <div className="h-px bg-border/50 mx-4" />}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {systemPrayers.map((prayer, index) => (
+                                <PrayerRowItem
+                                    key={prayer.id}
+                                    prayer={prayer}
+                                    onEdit={() => handleOpenEdit(prayer)}
+                                    showDivider={index < systemPrayers.length - 1}
+                                />
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
+            </section>
 
-                                <Field>
-                                    <FieldLabel htmlFor="custom-time">Time</FieldLabel>
-                                    <Input
-                                        id="custom-time"
-                                        type="time"
-                                        step={300}
-                                        value={customTime}
-                                        onChange={(e) => setCustomTime(e.target.value)}
-                                        required
-                                        className="h-9 text-xs font-mono"
-                                    />
-                                </Field>
-
-                                <Field orientation="horizontal" className="justify-between items-center">
-                                    <FieldLabel htmlFor="custom-notify" className="cursor-pointer">
-                                        Enable Notification
-                                    </FieldLabel>
-                                    <Switch
-                                        id="custom-notify"
-                                        checked={customNotify}
-                                        onCheckedChange={setCustomNotify}
-                                    />
-                                </Field>
-
-                                {customNotify && (
-                                    <Field>
-                                        <FieldLabel htmlFor="custom-lead">
-                                            Notification Lead Time (minutes before)
-                                        </FieldLabel>
-                                        <Input
-                                            id="custom-lead"
-                                            type="number"
-                                            min={0}
-                                            max={120}
-                                            step={5}
-                                            value={customLead}
-                                            onChange={(e) => setCustomLead(parseInt(e.target.value, 10) || 0)}
-                                            className="h-9 text-xs font-mono"
-                                        />
-                                    </Field>
-                                )}
-                            </FieldGroup>
-
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsDialogOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" size="sm" disabled={addCustomPrayer.isPending}>
-                                    {addCustomPrayer.isPending ? (
-                                        <>
-                                            <Loader2 data-icon="inline-start" className="animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        "Save Time"
-                                    )}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            {/* Fixed System Prayers Group */}
-            <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 px-1">
-                    Prayers
-                </span>
-
-                <div className="border border-border rounded-xl bg-card overflow-hidden divide-y divide-border/60 shadow-2xs">
-                    {systemPrayers.map((prayer) => (
-                        <PrayerRow
-                            key={prayer.id}
-                            prayer={prayer}
-                            onUpdate={handleUpdate}
-                            isUpdating={updatePrayer.isPending && updatePrayer.variables?.id === prayer.id}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* Custom Reference Times Group */}
-            <div className="flex flex-col gap-2 pt-1">
+            {/* Section 2: Custom Alerts */}
+            <section className="flex flex-col gap-2">
                 <div className="flex items-center justify-between px-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                        Custom Alerts
-                    </span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsDialogOpen(true)}
-                        className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground -mr-1"
-                    >
-                        <Plus data-icon="inline-start" className="text-primary" />
-                        <span>Add Alert</span>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Custom Reference Times
+                    </h2>
+                    <Button size="sm" variant="ghost" onClick={handleOpenCreate} className="h-7 text-xs px-2 gap-1.5">
+                        <Plus data-icon="inline-start" />
+                        <span>New</span>
                     </Button>
                 </div>
 
-                {customPrayers.length > 0 ? (
-                    <div className="border border-border rounded-xl bg-card overflow-hidden divide-y divide-border/60 shadow-2xs">
-                        {customPrayers.map((prayer) => (
-                            <PrayerRow
-                                key={prayer.id}
-                                prayer={prayer}
-                                onUpdate={handleUpdate}
-                                onDelete={() => deleteCustomPrayer.mutate(prayer.id)}
-                                isUpdating={updatePrayer.isPending && updatePrayer.variables?.id === prayer.id}
-                                isDeleting={deleteCustomPrayer.isPending && deleteCustomPrayer.variables === prayer.id}
-                            />
-                        ))}
-                    </div>
+                {isLoading ? (
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            <div className="p-4">
+                                <Skeleton className="h-12 w-full rounded-md" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : customPrayers.length === 0 ? (
+                    <Empty className="py-10 border border-dashed border-border/80 rounded-xl bg-card/40">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Clock />
+                            </EmptyMedia>
+                            <EmptyTitle>No custom markers</EmptyTitle>
+                            <EmptyDescription className="max-w-[260px]">
+                                Add markers like gym sessions, office hours, or medication routines.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
+                            <Button size="sm" variant="outline" onClick={handleOpenCreate}>
+                                <Plus data-icon="inline-start" />
+                                <span>Add Reference Time</span>
+                            </Button>
+                        </EmptyContent>
+                    </Empty>
                 ) : (
-                    <div className="border border-dashed border-border/80 rounded-xl p-6 text-center bg-card/40 flex flex-col items-center gap-2">
-                        <p className="text-xs text-muted-foreground">No custom alerts configured yet.</p>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsDialogOpen(true)}
-                            className="h-7 text-xs font-medium mt-1"
-                        >
-                            <Plus data-icon="inline-start" />
-                            <span>Create First Custom Alert</span>
-                        </Button>
-                    </div>
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {customPrayers.map((prayer, index) => (
+                                <PrayerRowItem
+                                    key={prayer.id}
+                                    prayer={prayer}
+                                    onEdit={() => handleOpenEdit(prayer)}
+                                    onDelete={() => deleteCustomPrayer.mutate(prayer.id)}
+                                    showDivider={index < customPrayers.length - 1}
+                                />
+                            ))}
+                        </CardContent>
+                    </Card>
                 )}
-            </div>
+            </section>
+
+            {/* Unified Dialog Modal */}
+            <PrayerTimeDialog
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                prayerToEdit={selectedPrayer}
+                onSaveCustom={(payload) => addCustomPrayer.mutate(payload, { onSuccess: () => setIsDialogOpen(false) })}
+                onUpdate={(id, payload) =>
+                    updatePrayer.mutate({ id, ...payload }, { onSuccess: () => setIsDialogOpen(false) })
+                }
+                isPending={addCustomPrayer.isPending || updatePrayer.isPending}
+            />
         </div>
     );
 }
 
-interface PrayerRowProps {
+interface PrayerRowItemProps {
     prayer: PrayerTime;
-    onUpdate: (p: PrayerTime, updates: Partial<Omit<PrayerTime, "id">>) => void;
+    onEdit: () => void;
     onDelete?: () => void;
-    isUpdating?: boolean;
-    isDeleting?: boolean;
+    showDivider?: boolean;
 }
 
-function PrayerRow({ prayer, onUpdate, onDelete, isUpdating = false, isDeleting = false }: PrayerRowProps) {
-    const [isEditing, setIsEditing] = React.useState(false);
+function PrayerRowItem({ prayer, onEdit, onDelete, showDivider }: PrayerRowItemProps) {
+    const { time, period } = format12Hour(prayer.time);
 
-    // Editing State
-    const [name, setName] = React.useState(prayer.name);
-    const [time, setTime] = React.useState(() => formatTimeInput(prayer.time));
-    const [notifyEnabled, setNotifyEnabled] = React.useState(prayer.notify_enabled);
-    const [lead, setLead] = React.useState(prayer.notify_lead_minutes);
-
-    const handleStartEdit = () => {
-        setName(prayer.name);
-        setTime(formatTimeInput(prayer.time));
-        setNotifyEnabled(prayer.notify_enabled);
-        setLead(prayer.notify_lead_minutes);
-        setIsEditing(true);
-    };
-
-    const handleCancelEdit = () => {
-        setIsEditing(false);
-    };
-
-    const handleSave = (e?: React.FormEvent) => {
-        e?.preventDefault();
-        const trimmedName = name.trim();
-        if (!trimmedName) return;
-
-        onUpdate(prayer, {
-            name: prayer.is_system ? undefined : trimmedName,
-            time: `${time}:00`,
-            notify_enabled: notifyEnabled,
-            notify_lead_minutes: lead,
-        });
-        setIsEditing(false);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Escape") handleCancelEdit();
-    };
-
-    const handleIncrementLead = () => setLead((prev) => Math.min(prev + 5, 120));
-    const handleDecrementLead = () => setLead((prev) => Math.max(prev - 5, 0));
-
-    const formatted12h = format12HourTime(prayer.time);
-
-    // Editable Mode View (2-Line Compact Layout)
-    if (isEditing) {
-        return (
-            <form onSubmit={handleSave} className="flex flex-col gap-2.5 p-3.5 bg-muted/40 transition-colors">
-                {/* LINE 1: Icon + Title Input + Alert Toggle + Check/Cancel Actions */}
-                <div className="flex items-center justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div
-                            className={cn(
-                                "size-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
-                                notifyEnabled
-                                    ? "bg-primary/10 text-primary border-primary/20"
-                                    : "bg-muted text-muted-foreground border-border/50",
-                            )}
-                        >
-                            <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
-                        </div>
-
-                        {!prayer.is_system ? (
-                            <Input
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Alert name"
-                                className="h-8 text-xs font-medium flex-1 max-w-[130px] sm:max-w-xs"
-                                autoFocus
-                                maxLength={50}
-                            />
-                        ) : (
-                            <span className="text-sm font-medium text-foreground truncate">{prayer.name}</span>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                        {/* Alert Switch */}
-                        <div className="flex items-center gap-1.5">
-                            <Switch
-                                id={`notify-toggle-${prayer.id}`}
-                                checked={notifyEnabled}
-                                onCheckedChange={setNotifyEnabled}
-                                aria-label={`Toggle notifications for ${prayer.name}`}
-                            />
-                            <span className="text-xs text-muted-foreground select-none font-medium">Alert</span>
-                        </div>
-
-                        <div className="h-4 w-px bg-border/60" />
-
-                        {/* Save & Cancel Buttons */}
-                        <div className="flex items-center gap-0.5">
-                            <Button
-                                type="submit"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-primary hover:text-primary hover:bg-primary/10"
-                                disabled={!name.trim() || isUpdating}
-                                aria-label="Save changes"
-                            >
-                                {isUpdating ? <Loader2 className="animate-spin" /> : <Check data-icon="inline-start" />}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-muted-foreground hover:text-foreground"
-                                onClick={handleCancelEdit}
-                                disabled={isUpdating}
-                                aria-label="Cancel editing"
-                            >
-                                <X data-icon="inline-start" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* LINE 2: Time Picker + Notification Lead Time Counter */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground font-medium">Time:</span>
-                        <Input
-                            type="time"
-                            step={300}
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            className="h-8 w-28 text-xs font-mono font-medium text-center"
+    return (
+        <div className="flex flex-col">
+            <div className="group flex items-center justify-between p-3 px-4 hover:bg-accent/40 transition-colors">
+                {/* Left: Icon + Label + Notification meta */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="size-8.5 rounded-lg flex items-center justify-center shrink-0 border border-border/60 bg-muted/40 text-foreground">
+                        <PrayerIcon
+                            name={prayer.name}
+                            isSystem={prayer.is_system}
+                            className="size-4 text-muted-foreground"
                         />
                     </div>
 
-                    {notifyEnabled ? (
-                        <div className="flex items-center gap-1.5">
-                            <div className="flex items-center h-8 rounded-md border border-input bg-card shrink-0 shadow-2xs">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7 rounded-none text-muted-foreground hover:text-foreground"
-                                    onClick={handleDecrementLead}
-                                    aria-label="Decrease lead minutes"
-                                >
-                                    <Minus data-icon="inline-start" />
-                                </Button>
-                                <span className="w-8 text-center text-xs font-mono select-none text-muted-foreground font-medium">
-                                    {lead}m
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate leading-tight">
+                            {prayer.name}
+                        </span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                            {prayer.notify_enabled ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-normal">
+                                    <Bell className="size-3 text-muted-foreground/70" />
+                                    <span>
+                                        {prayer.notify_lead_minutes === 0
+                                            ? "At exact time"
+                                            : `${prayer.notify_lead_minutes}m before`}
+                                    </span>
                                 </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/50 font-normal">
+                                    <BellOff className="size-3" />
+                                    <span>Muted</span>
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Tabular Time & Action Menu */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-baseline font-mono text-sm font-medium tabular-nums text-foreground">
+                        <span>{time}</span>
+                        <span className="text-[11px] font-normal uppercase text-muted-foreground ml-1">{period}</span>
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={
                                 <Button
-                                    type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="size-7 rounded-none text-muted-foreground hover:text-foreground"
-                                    onClick={handleIncrementLead}
-                                    aria-label="Increase lead minutes"
-                                >
-                                    <Plus data-icon="inline-start" />
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <span className="text-xs text-muted-foreground/60 italic">Muted</span>
-                    )}
-                </div>
-            </form>
-        );
-    }
-
-    // Read-Only Default Mode
-    return (
-        <div
-            className={cn(
-                "group flex items-center justify-between gap-3 px-3.5 py-3 transition-colors duration-150 hover:bg-muted/30",
-                (isUpdating || isDeleting) && "opacity-60 pointer-events-none",
-            )}
-        >
-            {/* LEFT: Icon + Name + Notification Badge */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div
-                    className={cn(
-                        "size-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
-                        prayer.notify_enabled
-                            ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-muted/50 text-muted-foreground border-border/40",
-                    )}
-                >
-                    {isUpdating || isDeleting ? (
-                        <Loader2 className="animate-spin text-muted-foreground" />
-                    ) : (
-                        <PrayerIcon name={prayer.name} isSystem={prayer.is_system} strokeWidth={1.75} />
-                    )}
-                </div>
-
-                <div className="flex flex-col gap-0.5 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium text-foreground truncate">{prayer.name}</span>
-                        {prayer.notify_enabled && (
-                            <Badge
-                                variant="secondary"
-                                className="font-mono text-[10px] px-1.5 h-4.5 gap-1 shrink-0 rounded-md font-medium"
-                            >
-                                <Bell data-icon="inline-start" />
-                                <span>{prayer.notify_lead_minutes}m</span>
-                            </Badge>
-                        )}
-                    </div>
-                    {!prayer.notify_enabled && (
-                        <span className="text-xs text-muted-foreground/70 font-normal">Muted</span>
-                    )}
-                </div>
-            </div>
-
-            {/* RIGHT: Softer Time Typography + Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-baseline gap-1 text-right">
-                    <span className="font-mono text-base font-medium text-foreground tabular-nums">
-                        {formatted12h.time}
-                    </span>
-                    <span className="text-xs font-normal uppercase text-muted-foreground">{formatted12h.period}</span>
-                </div>
-
-                <div className="flex items-center gap-0.5 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        onClick={handleStartEdit}
-                        aria-label={`Edit ${prayer.name}`}
-                    >
-                        <Pencil data-icon="inline-start" />
-                    </Button>
-                    {!prayer.is_system && onDelete && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={onDelete}
-                            aria-label={`Delete ${prayer.name}`}
+                                    className="size-8 text-muted-foreground hover:text-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                    aria-label={`Options for ${prayer.name}`}
+                                />
+                            }
                         >
-                            <Trash2 data-icon="inline-start" />
-                        </Button>
-                    )}
+                            <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={onEdit}>
+                                    <Pencil data-icon="inline-start" />
+                                    <span>Edit</span>
+                                </DropdownMenuItem>
+                                {!prayer.is_system && onDelete && (
+                                    <DropdownMenuItem
+                                        onClick={onDelete}
+                                        className="text-destructive focus:text-destructive"
+                                    >
+                                        <Trash2 data-icon="inline-start" />
+                                        <span>Delete</span>
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
+
+            {showDivider && <div className="h-px bg-border/50 mx-4" />}
         </div>
     );
 }
