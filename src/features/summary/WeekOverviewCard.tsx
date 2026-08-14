@@ -1,64 +1,74 @@
-import { CheckCircle2, SkipForward, ListChecks } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { useWeekStats } from "./hooks";
 
 export function WeekOverviewCard() {
     const { data, isLoading } = useWeekStats();
 
+    const completionRate = data && data.totalAssigned > 0 ? Math.round((data.completed / data.totalAssigned) * 100) : 0;
+
     return (
-        <Card className="border-border/80 shadow-2xs">
-            <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
-                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <ListChecks className="size-3.5 text-muted-foreground" />
-                    <span>This Week</span>
-                </CardTitle>
-            </CardHeader>
+        <section className="flex flex-col gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                Weekly Overview
+            </h2>
 
-            <CardContent className="p-4">
-                {isLoading ? (
-                    <div className="grid grid-cols-3 gap-3">
-                        <Skeleton className="h-16 rounded-xl" />
-                        <Skeleton className="h-16 rounded-xl" />
-                        <Skeleton className="h-16 rounded-xl" />
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted/40 border border-border/50">
-                            <span className="text-lg font-bold font-mono text-foreground tabular-nums">
-                                {data.completed}
-                                <span className="text-xs font-normal text-muted-foreground">/{data.totalAssigned}</span>
-                            </span>
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <CheckCircle2 className="size-3" />
-                                <span>Completed</span>
-                            </span>
+            <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                <CardContent className="p-0 flex flex-col gap-0">
+                    {isLoading ? (
+                        <div className="grid grid-cols-4 divide-x divide-border/50 p-4">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="flex flex-col items-center gap-1.5 px-2">
+                                    <Skeleton className="h-6 w-10 rounded-md" />
+                                    <Skeleton className="h-3 w-12 rounded-md" />
+                                </div>
+                            ))}
                         </div>
+                    ) : (
+                        <div className="grid grid-cols-4 divide-x divide-border/50">
+                            {/* Metric 1: Completed */}
+                            <div className="flex flex-col items-center justify-center p-3.5 text-center">
+                                <span className="text-lg font-bold font-mono text-foreground tabular-nums leading-tight">
+                                    {data.completed}
+                                </span>
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mt-1">
+                                    Done
+                                </span>
+                            </div>
 
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted/40 border border-border/50">
-                            <span className="text-lg font-bold font-mono text-foreground tabular-nums">
-                                {data.skipped}
-                            </span>
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <SkipForward className="size-3" />
-                                <span>Skipped</span>
-                            </span>
-                        </div>
+                            {/* Metric 2: Skipped */}
+                            <div className="flex flex-col items-center justify-center p-3.5 text-center">
+                                <span className="text-lg font-bold font-mono text-muted-foreground tabular-nums leading-tight">
+                                    {data.skipped}
+                                </span>
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mt-1">
+                                    Skipped
+                                </span>
+                            </div>
 
-                        <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted/40 border border-border/50">
-                            <span className="text-lg font-bold font-mono text-foreground tabular-nums">
-                                {data.totalAssigned}
-                            </span>
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <ListChecks className="size-3" />
-                                <span>Assigned</span>
-                            </span>
+                            {/* Metric 3: Total Assigned */}
+                            <div className="flex flex-col items-center justify-center p-3.5 text-center">
+                                <span className="text-lg font-bold font-mono text-foreground tabular-nums leading-tight">
+                                    {data.totalAssigned}
+                                </span>
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mt-1">
+                                    Total
+                                </span>
+                            </div>
+
+                            {/* Metric 4: Completion Rate % */}
+                            <div className="flex flex-col items-center justify-center p-3.5 text-center bg-accent/20">
+                                <span className="text-lg font-bold font-mono text-foreground tabular-nums leading-tight">
+                                    {completionRate}%
+                                </span>
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mt-1">
+                                    Rate
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                    )}
+                </CardContent>
+            </Card>
+        </section>
     );
 }

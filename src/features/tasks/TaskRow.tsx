@@ -22,6 +22,8 @@ interface TaskRowProps {
     recurringState?: RecurringTaskState;
     onEdit: (task: Task) => void;
     onAssign?: (task: Task) => void;
+    onCompleted?: (taskId: string) => void;
+    showDivider?: boolean;
 }
 
 function getDueInfo(dueDate: Date | null, nowMs: number): { label: string; isOverdue: boolean } | null {
@@ -56,7 +58,7 @@ function getDueInfo(dueDate: Date | null, nowMs: number): { label: string; isOve
     return { label: dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }), isOverdue: false };
 }
 
-export function TaskRow({ task, recurringState, onEdit, onAssign }: TaskRowProps) {
+export function TaskRow({ task, recurringState, onEdit, onAssign, onCompleted, showDivider }: TaskRowProps) {
     const now = useNow();
     const markOneTimeDone = useMarkOneTimeDone();
     const logCompletion = useLogTaskCompletion();
@@ -76,6 +78,7 @@ export function TaskRow({ task, recurringState, onEdit, onAssign }: TaskRowProps
         if (!checked) return;
 
         setIsLocallyDone(true);
+        onCompleted?.(task.id);
 
         if (isRecurring) {
             logCompletion.mutate(
@@ -88,137 +91,128 @@ export function TaskRow({ task, recurringState, onEdit, onAssign }: TaskRowProps
     };
 
     return (
-        <div
-            className={cn(
-                "group flex items-center justify-between px-3 py-2.5 transition-colors duration-150 hover:bg-muted/40 select-none",
-                isDone && "opacity-50 hover:bg-transparent",
-                isOverdue && "border-l-2 border-destructive/80 pl-2.5",
-            )}
-        >
-            <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                <Checkbox
-                    checked={isDone}
-                    onCheckedChange={(checked) => handleCheckboxChange(Boolean(checked))}
-                    aria-label={`Mark "${task.title}" as done`}
-                    className="size-4.5 rounded transition-transform active:scale-95 shrink-0"
-                />
-
-                <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                    <span
-                        className={cn(
-                            "size-1.5 rounded-full shrink-0",
-                            task.priority === "high" && "bg-destructive",
-                            task.priority === "medium" && "bg-amber-500 dark:bg-amber-400",
-                            task.priority === "low" && "bg-muted-foreground/40",
-                        )}
-                        title={`Priority: ${task.priority}`}
+        <div className="flex flex-col">
+            <div
+                className={cn(
+                    "group flex items-center justify-between p-3 px-4 hover:bg-accent/40 transition-colors select-none",
+                    isDone && "opacity-40 hover:bg-transparent transition-opacity duration-300",
+                )}
+            >
+                {/* Left: Checkbox + Priority + Details */}
+                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                    <Checkbox
+                        checked={isDone}
+                        onCheckedChange={(checked) => handleCheckboxChange(Boolean(checked))}
+                        aria-label={`Mark "${task.title}" as done`}
+                        className="size-4.5 rounded shrink-0"
                     />
 
-                    {isRecurring && (
-                        <Repeat className="size-3 text-muted-foreground shrink-0" aria-label="Recurring task" />
-                    )}
-
-                    <span
-                        className={cn(
-                            "text-xs font-medium transition-colors truncate",
-                            isDone ? "line-through text-muted-foreground font-normal" : "text-foreground",
+                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                        {task.priority !== "medium" && (
+                            <span
+                                className={cn(
+                                    "size-1.5 rounded-full shrink-0",
+                                    task.priority === "high" ? "bg-destructive" : "bg-muted-foreground/50",
+                                )}
+                                title={`Priority: ${task.priority}`}
+                            />
                         )}
-                    >
-                        {task.title}
-                    </span>
 
-                    {task.category && (
-                        <Badge
-                            variant="secondary"
-                            className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full gap-1"
-                        >
-                            {task.category.color && (
-                                <span
-                                    className="size-1.5 rounded-full shrink-0"
-                                    style={{ backgroundColor: task.category.color }}
-                                />
-                            )}
-                            <span className="truncate max-w-[80px]">{task.category.name}</span>
-                        </Badge>
-                    )}
+                        {isRecurring && (
+                            <Repeat className="size-3 text-muted-foreground shrink-0" aria-label="Recurring task" />
+                        )}
 
-                    {dueInfo && (
-                        <Badge
-                            variant={dueInfo.isOverdue ? "destructive" : "secondary"}
+                        <span
                             className={cn(
-                                "text-[10px] font-normal px-1.5 h-4.5 shrink-0 rounded-full",
-                                !dueInfo.isOverdue && "text-muted-foreground",
+                                "text-sm font-medium leading-tight truncate",
+                                isDone ? "line-through text-muted-foreground font-normal" : "text-foreground",
                             )}
                         >
-                            {isRecurring && !dueInfo.isOverdue ? `Due ${dueInfo.label}` : dueInfo.label}
-                        </Badge>
-                    )}
+                            {task.title}
+                        </span>
 
-                    {task.estimated_minutes && (
-                        <Badge
-                            variant="secondary"
-                            className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full gap-1"
+                        {task.category && (
+                            <Badge
+                                variant="secondary"
+                                className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-md gap-1"
+                            >
+                                {task.category.color && (
+                                    <span
+                                        className="size-1.5 rounded-full shrink-0"
+                                        style={{ backgroundColor: task.category.color }}
+                                    />
+                                )}
+                                <span className="truncate max-w-[80px]">{task.category.name}</span>
+                            </Badge>
+                        )}
+
+                        {dueInfo && (
+                            <span
+                                className={cn(
+                                    "text-[11px] font-mono shrink-0",
+                                    isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
+                                )}
+                            >
+                                {isRecurring && !dueInfo.isOverdue ? `Due ${dueInfo.label}` : dueInfo.label}
+                            </span>
+                        )}
+
+                        {task.estimated_minutes && (
+                            <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground/70 font-mono shrink-0">
+                                <Clock className="size-3" />
+                                <span>{task.estimated_minutes}m</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: Actions Menu */}
+                <div className="flex items-center shrink-0">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-muted-foreground hover:text-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                    aria-label={`Options for ${task.title}`}
+                                />
+                            }
                         >
-                            <Clock data-icon="inline-start" />
-                            <span>{task.estimated_minutes}m</span>
-                        </Badge>
-                    )}
+                            <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => onEdit(task)}>
+                                    <Pencil data-icon="inline-start" />
+                                    <span>Edit</span>
+                                </DropdownMenuItem>
+                                {onAssign && (
+                                    <DropdownMenuItem onClick={() => onAssign(task)}>
+                                        <Calendar data-icon="inline-start" />
+                                        <span>Assign to day</span>
+                                    </DropdownMenuItem>
+                                )}
+                                {isRecurring && (
+                                    <DropdownMenuItem onClick={() => skipCycle.mutate(task.id)}>
+                                        <SkipForward data-icon="inline-start" />
+                                        <span>Skip cycle</span>
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onClick={() => deleteTask.mutate(task.id)}
+                                    className="text-destructive focus:text-destructive"
+                                >
+                                    <Trash2 data-icon="inline-start" />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-muted-foreground hover:text-foreground"
-                                aria-label="More options"
-                            />
-                        }
-                    >
-                        <MoreHorizontal />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => onEdit(task)}>
-                                <Pencil data-icon="inline-start" />
-                                Edit task
-                            </DropdownMenuItem>
-                            {onAssign && (
-                                <DropdownMenuItem onClick={() => onAssign(task)}>
-                                    <Calendar data-icon="inline-start" />
-                                    Assign to day
-                                </DropdownMenuItem>
-                            )}
-                            {isRecurring && (
-                                <DropdownMenuItem onClick={() => skipCycle.mutate(task.id)}>
-                                    <SkipForward data-icon="inline-start" />
-                                    Skip this cycle
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                                onClick={() => deleteTask.mutate(task.id)}
-                                className="text-destructive focus:text-destructive"
-                            >
-                                <Trash2 data-icon="inline-start" />
-                                Delete task
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Delete ${task.title}`}
-                    onClick={() => deleteTask.mutate(task.id)}
-                    className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hidden sm:inline-flex"
-                >
-                    <Trash2 />
-                </Button>
-            </div>
+            {showDivider && <div className="h-px bg-border/50 mx-4" />}
         </div>
     );
 }

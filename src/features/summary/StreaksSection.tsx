@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Flame } from "lucide-react";
+import { Flame } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
@@ -9,80 +8,86 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/
 import { useTaskStreaks } from "./hooks";
 
 export function StreaksSection() {
-    const [isOpen, setIsOpen] = useState(true);
-    const { data, isLoading } = useTaskStreaks();
+    const { data = [], isLoading } = useTaskStreaks();
 
     return (
-        <div className="flex flex-col gap-2">
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="px-1.5 h-7 text-xs font-semibold text-muted-foreground hover:text-foreground gap-1.5 w-fit"
-            >
-                {isOpen ? <ChevronDown data-icon="inline-start" /> : <ChevronRight data-icon="inline-start" />}
-                <Flame className="size-3.5 text-primary" />
-                <span>Recurring Streaks</span>
-                {data.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px] font-normal px-1.5 h-4">
-                        {data.length}
-                    </Badge>
-                )}
-            </Button>
+        <section className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Recurring Streaks
+                    </h2>
+                    {data.length > 0 && (
+                        <Badge variant="secondary" className="rounded-full px-1.5 text-[10px] font-mono h-4">
+                            {data.length}
+                        </Badge>
+                    )}
+                </div>
+            </div>
 
-            {isOpen && (
-                <div className="border border-border/80 rounded-xl bg-card overflow-hidden shadow-2xs">
-                    {isLoading ? (
+            {isLoading ? (
+                <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                    <CardContent className="p-0 flex flex-col gap-0">
                         <div className="p-4 flex flex-col gap-2">
-                            <Skeleton className="h-9 w-full rounded-lg" />
-                            <Skeleton className="h-9 w-full rounded-lg" />
+                            <Skeleton className="h-5 w-full rounded-md" />
+                            <Skeleton className="h-5 w-full rounded-md" />
                         </div>
-                    ) : data.length === 0 ? (
-                        <Empty className="py-8 border-0">
-                            <EmptyHeader>
-                                <EmptyMedia variant="icon">
-                                    <Flame />
-                                </EmptyMedia>
-                                <EmptyTitle className="text-xs">No active streaks yet</EmptyTitle>
-                                <EmptyDescription className="text-[11px] max-w-xs">
-                                    Complete a recurring task in consecutive weeks to build a streak.
-                                </EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    ) : (
-                        <div className="divide-y divide-border/50">
-                            {data.map((s) => (
-                                <div key={s.taskId} className="flex items-center justify-between gap-2 px-3.5 py-2.5">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <span className="text-xs font-medium text-foreground truncate">{s.title}</span>
-                                        {s.category && (
+                    </CardContent>
+                </Card>
+            ) : data.length === 0 ? (
+                <Empty className="py-8 border border-dashed border-border/80 rounded-xl bg-card/40">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <Flame />
+                        </EmptyMedia>
+                        <EmptyTitle>No active streaks</EmptyTitle>
+                        <EmptyDescription className="max-w-[240px]">
+                            Complete recurring tasks across consecutive weeks to build momentum.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            ) : (
+                <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                    <CardContent className="p-0 flex flex-col gap-0">
+                        {data.map((item, index) => (
+                            <div key={item.taskId} className="flex flex-col">
+                                <div className="group flex items-center justify-between p-3 px-4 hover:bg-accent/40 transition-colors">
+                                    {/* Task Name & Category */}
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-3">
+                                        <span className="text-sm font-medium text-foreground truncate leading-tight">
+                                            {item.title}
+                                        </span>
+                                        {item.category && (
                                             <Badge
                                                 variant="secondary"
                                                 className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full gap-1"
                                             >
-                                                {s.category.color && (
+                                                {item.category.color && (
                                                     <span
                                                         className="size-1.5 rounded-full shrink-0"
-                                                        style={{ backgroundColor: s.category.color }}
+                                                        style={{ backgroundColor: item.category.color }}
                                                     />
                                                 )}
-                                                <span className="truncate max-w-[80px]">{s.category.name}</span>
+                                                <span className="truncate max-w-[80px]">{item.category.name}</span>
                                             </Badge>
                                         )}
                                     </div>
+
+                                    {/* Streak Badge */}
                                     <Badge
                                         variant="secondary"
-                                        className="text-[10px] font-medium px-1.5 h-4.5 rounded-full gap-1 shrink-0 text-primary bg-primary/10"
+                                        className="text-[11px] font-mono font-medium px-2 h-5 rounded-full shrink-0 text-foreground"
                                     >
-                                        <Flame className="size-3" />
-                                        <span>{s.currentStreak}w</span>
+                                        {item.currentStreak}w
                                     </Badge>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+
+                                {index < data.length - 1 && <div className="h-px bg-border/50 mx-4" />}
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             )}
-        </div>
+        </section>
     );
 }

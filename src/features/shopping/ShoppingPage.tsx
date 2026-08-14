@@ -1,23 +1,24 @@
-import { useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import * as React from "react";
+import { ShoppingBag } from "lucide-react";
 
-import { useShoppingItemsQuery, useShoppingRealtime } from "@/features/shopping/hooks";
-import { useShoppingCategoriesQuery } from "@/features/shopping/hooks";
+import { useShoppingItemsQuery, useShoppingRealtime, useShoppingCategoriesQuery } from "@/features/shopping/hooks";
 import type { ShoppingItem } from "@/features/shopping/types";
 
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 
 import { QuickAddBar } from "./QuickAddBar";
 import { FrequentStrip } from "./FrequentStrip";
 import { CategoryFilterBar } from "./CategoryFilterBar";
 import { ShoppingCategoryGroup } from "./ShoppingCategoryGroup";
 import { BoughtSection } from "./BoughtSection";
+import { EditShoppingItemDialog } from "./EditShoppingItemDialog";
 
 function useShoppingGroups(categoryFilter: string | null) {
     const { data: items = [], isLoading } = useShoppingItemsQuery();
 
-    const computed = useMemo(() => {
+    const computed = React.useMemo(() => {
         const filtered = categoryFilter ? items.filter((i) => i.category_id === categoryFilter) : items;
         const pending = filtered.filter((i) => i.status === "pending");
         const bought = items.filter((i) => i.status === "bought");
@@ -39,61 +40,90 @@ function useShoppingGroups(categoryFilter: string | null) {
 export function ShoppingPage() {
     useShoppingRealtime();
 
-    const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+    const [categoryFilter, setCategoryFilter] = React.useState<string | null>(null);
+    const [editingItem, setEditingItem] = React.useState<ShoppingItem | null>(null);
+
     const { data: categories = [] } = useShoppingCategoriesQuery();
     const { groupedPending, pendingCount, bought, frequent, isLoading } = useShoppingGroups(categoryFilter);
 
     return (
-        <div className="max-w-xl mx-auto px-4 py-5 flex flex-col gap-4 pb-28">
+        <div className="mx-auto flex max-w-lg flex-col gap-8 px-4 py-8 pb-28">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold tracking-tight">Shopping List</h1>
-                    <Badge variant="secondary" className="rounded-full px-2 text-xs font-medium">
-                        {pendingCount}
-                    </Badge>
+            <header className="flex items-start justify-between min-w-0">
+                <div className="flex flex-col min-w-0">
+                    <h1 className="text-xl font-bold tracking-tight truncate leading-none">Shopping List</h1>
+                    <p className="text-sm text-muted-foreground truncate mt-1.5">
+                        Manage groceries and recurring household essentials.
+                    </p>
                 </div>
-            </div>
+            </header>
 
-            {/* Compact Quick Add Bar */}
-            <QuickAddBar />
+            {/* Quick Add & Frequent Strip */}
+            <section className="flex flex-col gap-3">
+                <QuickAddBar />
+                <FrequentStrip items={frequent} />
+            </section>
 
-            {/* Filter & Restock Strip */}
-            <div className="flex flex-col gap-2 pt-0.5">
+            {/* Category Filter Bar */}
+            {categories.length > 0 && (
                 <CategoryFilterBar
                     categories={categories}
                     selectedCategory={categoryFilter}
                     onSelectCategory={setCategoryFilter}
                 />
-                <FrequentStrip items={frequent} />
-            </div>
+            )}
 
-            {/* List */}
-            <div className="flex flex-col gap-4 pt-1">
+            {/* Shopping List Groups */}
+            <div className="flex flex-col gap-6">
                 {isLoading ? (
-                    <div className="flex flex-col gap-2">
-                        <Skeleton className="h-14 w-full rounded-xl" />
-                        <Skeleton className="h-14 w-full rounded-xl" />
-                    </div>
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="flex flex-col">
+                                    <div className="p-4 flex items-center justify-between">
+                                        <Skeleton className="h-4 w-32 rounded-md" />
+                                        <Skeleton className="h-4 w-12 rounded-md" />
+                                    </div>
+                                    {i < 2 && <div className="h-px bg-border/50 mx-4" />}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
                 ) : pendingCount === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-10 px-4 border border-dashed rounded-xl bg-card/50 gap-2">
-                        <div className="p-2.5 rounded-full bg-muted text-muted-foreground">
-                            <Sparkles className="size-4" />
-                        </div>
-                        <h3 className="font-medium text-xs">All clear!</h3>
-                        <p className="text-[11px] text-muted-foreground max-w-xs">
-                            Add items above or tap your quick restock pills.
-                        </p>
-                    </div>
+                    <Empty className="py-10 border border-dashed border-border/80 rounded-xl bg-card/40">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <ShoppingBag />
+                            </EmptyMedia>
+                            <EmptyTitle>Shopping list is clear</EmptyTitle>
+                            <EmptyDescription className="max-w-[260px]">
+                                Add items above or tap your frequent items to start building your cart.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 ) : (
                     Object.entries(groupedPending).map(([catName, items]) => (
-                        <ShoppingCategoryGroup key={catName} title={catName} items={items} />
+                        <ShoppingCategoryGroup
+                            key={catName}
+                            title={catName}
+                            items={items}
+                            onEdit={(item) => setEditingItem(item)}
+                        />
                     ))
                 )}
             </div>
 
-            {/* Completed Section */}
-            <BoughtSection items={bought} />
+            {/* Bought Archive Section */}
+            <BoughtSection items={bought} onEdit={(item) => setEditingItem(item)} />
+
+            {/* Focused Edit Dialog */}
+            <EditShoppingItemDialog
+                open={Boolean(editingItem)}
+                onOpenChange={(open) => {
+                    if (!open) setEditingItem(null);
+                }}
+                item={editingItem}
+            />
         </div>
     );
 }

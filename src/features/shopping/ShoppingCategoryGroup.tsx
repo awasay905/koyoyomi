@@ -1,35 +1,35 @@
+import { Card, CardContent } from "@/components/ui/card";
 import type { ShoppingItem } from "./types";
 import { ShoppingItemRow } from "./ShoppingItemRow";
-import { Badge } from "@/components/ui/badge";
 
 interface ShoppingCategoryGroupProps {
     title: string;
     items: ShoppingItem[];
+    onEdit: (item: ShoppingItem) => void;
 }
 
-export function ShoppingCategoryGroup({ title, items }: ShoppingCategoryGroupProps) {
+export function ShoppingCategoryGroup({ title, items, onEdit }: ShoppingCategoryGroupProps) {
     if (items.length === 0) return null;
 
     return (
-        <div className="flex flex-col gap-1.5">
-            {/* Category Header */}
+        <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {title}
-                    </h3>
-                    <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-4 rounded-full">
-                        {items.length}
-                    </Badge>
-                </div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+                <span className="text-[11px] font-mono text-muted-foreground">{items.length}</span>
             </div>
 
-            {/* Enclosed Card Container */}
-            <div className="border border-border/80 rounded-xl bg-card overflow-hidden divide-y divide-border/50 shadow-2xs">
-                {items.map((item) => (
-                    <ShoppingItemRow key={item.id} item={item} />
-                ))}
-            </div>
-        </div>
+            <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                <CardContent className="p-0 flex flex-col gap-0">
+                    {items.map((item, index) => (
+                        <ShoppingItemRow
+                            key={item.id}
+                            item={item}
+                            onEdit={onEdit}
+                            showDivider={index < items.length - 1}
+                        />
+                    ))}
+                </CardContent>
+            </Card>
+        </section>
     );
 }

@@ -1,7 +1,21 @@
-import { useEffect } from "react";
+import * as React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Calendar as CalendarIcon, Clock, Plus, Minus } from "lucide-react";
+import {
+    Loader2,
+    Calendar as CalendarIcon,
+    Clock,
+    Plus,
+    Minus,
+    ChevronDown,
+    ChevronUp,
+    SlidersHorizontal,
+    Bell,
+    Tag,
+    Flag,
+    Timer,
+    FileText,
+} from "lucide-react";
 
 import {
     Dialog,
@@ -11,11 +25,14 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { FieldGroup, Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { FieldGroup, Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CreatableCombobox } from "@/components/shared/CreatableCombobox";
@@ -30,6 +47,24 @@ interface AddTaskDialogProps {
     onOpenChange: (open: boolean) => void;
     taskToEdit?: Task | null;
 }
+
+const DURATION_CHIPS = [
+    { value: "none", label: "None" },
+    { value: "15", label: "15m" },
+    { value: "30", label: "30m" },
+    { value: "45", label: "45m" },
+    { value: "60", label: "1h" },
+    { value: "90", label: "1.5h" },
+];
+
+const NOTIFY_LEAD_OPTIONS = [
+    { value: "0", label: "At exact time" },
+    { value: "5", label: "5m before" },
+    { value: "10", label: "10m before" },
+    { value: "15", label: "15m before" },
+    { value: "30", label: "30m before" },
+    { value: "60", label: "1h before" },
+];
 
 function formatDateTimeForInput(isoString: string | null): string {
     if (!isoString) return "";
@@ -65,7 +100,6 @@ function formatDateTimeLabel(isoString: string): string {
     return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-// Shadcn-styled Stepper / Up-Down Control for numeric inputs
 interface NumberStepperProps {
     id?: string;
     value: string;
@@ -75,8 +109,8 @@ interface NumberStepperProps {
     step?: number;
     placeholder?: string;
     ariaInvalid?: boolean;
-    className?: string;
     disabled?: boolean;
+    className?: string;
 }
 
 function NumberStepper({
@@ -88,8 +122,8 @@ function NumberStepper({
     step = 1,
     placeholder,
     ariaInvalid,
-    className,
     disabled,
+    className,
 }: NumberStepperProps) {
     const handleDecrement = () => {
         const parsed = parseInt(value || "0", 10);
@@ -113,7 +147,7 @@ function NumberStepper({
     return (
         <div
             className={cn(
-                "flex items-center h-9 rounded-md border border-input bg-background shrink-0 focus-within:ring-1 focus-within:ring-ring transition-colors",
+                "flex items-center h-8.5 rounded-lg border border-border/80 bg-background focus-within:ring-1 focus-within:ring-ring transition-colors",
                 ariaInvalid && "border-destructive text-destructive focus-within:ring-destructive",
                 className,
             )}
@@ -141,7 +175,7 @@ function NumberStepper({
                 placeholder={placeholder}
                 aria-invalid={ariaInvalid}
                 disabled={disabled}
-                className="h-full w-full border-0 p-0 text-center text-xs bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="h-full w-full border-0 p-0 text-center text-xs bg-transparent shadow-none rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 font-mono"
             />
             <Button
                 type="button"
@@ -158,7 +192,6 @@ function NumberStepper({
     );
 }
 
-// Accessible Popover DatePicker
 function DatePicker({
     value,
     onChange,
@@ -166,7 +199,7 @@ function DatePicker({
     id,
     ariaInvalid,
 }: {
-    value: string; // YYYY-MM-DD
+    value: string;
     onChange: (val: string) => void;
     placeholder?: string;
     id?: string;
@@ -184,14 +217,14 @@ function DatePicker({
                         variant="outline"
                         aria-invalid={ariaInvalid}
                         className={cn(
-                            "h-9 w-full justify-start text-left text-xs font-normal bg-background",
+                            "h-8.5 w-full justify-start text-left text-xs font-normal bg-background border-border/80",
                             !value && "text-muted-foreground",
                         )}
                     />
                 }
             >
                 <CalendarIcon data-icon="inline-start" />
-                <span>{value ? formatDateLabel(value) : placeholder}</span>
+                <span className="truncate">{value ? formatDateLabel(value) : placeholder}</span>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
@@ -213,7 +246,6 @@ function DatePicker({
     );
 }
 
-// Accessible Popover DateTimePicker
 function DateTimePicker({
     value,
     onChange,
@@ -221,7 +253,7 @@ function DateTimePicker({
     id,
     ariaInvalid,
 }: {
-    value: string; // YYYY-MM-DDTHH:mm
+    value: string;
     onChange: (val: string) => void;
     placeholder?: string;
     id?: string;
@@ -257,25 +289,25 @@ function DateTimePicker({
                         variant="outline"
                         aria-invalid={ariaInvalid}
                         className={cn(
-                            "h-9 w-full justify-start text-left text-xs font-normal bg-background",
+                            "h-9 w-full justify-start text-left text-xs font-normal bg-background border-border/80",
                             !value && "text-muted-foreground",
                         )}
                     />
                 }
             >
                 <CalendarIcon data-icon="inline-start" />
-                <span>{value ? formatDateTimeLabel(value) : placeholder}</span>
+                <span className="truncate">{value ? formatDateTimeLabel(value) : placeholder}</span>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-3 flex flex-col gap-3" align="start">
                 <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} autoFocus />
-                <div className="flex items-center gap-2 pt-2 border-t border-border">
-                    <Clock data-icon="inline-start" className="text-muted-foreground" />
+                <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                    <Clock className="size-4 text-muted-foreground shrink-0" />
                     <span className="text-xs font-medium text-muted-foreground">Time:</span>
                     <Input
                         type="time"
                         value={timePart}
                         onChange={handleTimeChange}
-                        className="h-8 text-xs bg-background flex-1"
+                        className="h-8 text-xs font-mono bg-background flex-1"
                     />
                 </div>
             </PopoverContent>
@@ -309,29 +341,44 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
     const { data: categories = [] } = useTaskCategoriesQuery();
     const createCategory = useCreateTaskCategory();
 
-    const {
-        register,
-        handleSubmit,
-        control,
-        reset,
-        watch,
-        setValue,
-        formState: { errors },
-    } = useForm<AddTaskValues>({
+    const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
+    const [recurrencePreset, setRecurrencePreset] = React.useState<"day" | "week" | "month" | "custom">("week");
+
+    const form = useForm<AddTaskValues>({
         resolver: zodResolver(addTaskSchema),
         defaultValues: emptyDefaults,
     });
 
-    const watchType = watch("type");
-    const watchNotifyEnabled = watch("notify_enabled");
-    const watchRecurrenceUnit = watch("recurrence_unit");
-    const watchEndType = watch("recurrence_end_type");
+    const watchType = form.watch("type");
+    const watchNotifyEnabled = form.watch("notify_enabled");
+    const watchRecurrenceUnit = form.watch("recurrence_unit");
+    const watchInterval = form.watch("recurrence_interval");
+    const watchEndType = form.watch("recurrence_end_type");
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!open) return;
 
         if (taskToEdit) {
-            reset({
+            const hasAdvancedContent = Boolean(
+                taskToEdit.description ||
+                taskToEdit.category_id ||
+                taskToEdit.estimated_minutes ||
+                taskToEdit.notify_enabled ||
+                taskToEdit.priority !== "medium",
+            );
+            setIsAdvancedOpen(hasAdvancedContent);
+
+            const unit = taskToEdit.recurrence_unit;
+            const interval = taskToEdit.recurrence_interval;
+            if (interval === 1 && (unit === "day" || unit === "week" || unit === "month")) {
+                setRecurrencePreset(unit);
+            } else if (taskToEdit.type === "recurring") {
+                setRecurrencePreset("custom");
+            } else {
+                setRecurrencePreset("week");
+            }
+
+            form.reset({
                 title: taskToEdit.title,
                 description: taskToEdit.description ?? "",
                 category_id: taskToEdit.category_id ?? null,
@@ -349,20 +396,30 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
                 recurrence_end_date: formatDateForInput(taskToEdit.recurrence_end_date),
             });
         } else {
-            reset(emptyDefaults);
+            setIsAdvancedOpen(false);
+            setRecurrencePreset("week");
+            form.reset(emptyDefaults);
         }
-    }, [open, taskToEdit, reset]);
+    }, [open, taskToEdit, form]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (watchType === "recurring") {
-            if (!watchRecurrenceUnit) setValue("recurrence_unit", "week");
-            const currentInterval = watch("recurrence_interval");
-            if (!currentInterval) setValue("recurrence_interval", "1");
-            const currentStart = watch("start_date");
-            if (!currentStart) setValue("start_date", todayDateString());
+            if (!watchRecurrenceUnit) form.setValue("recurrence_unit", "week");
+            if (!watchInterval) form.setValue("recurrence_interval", "1");
+            const currentStart = form.watch("start_date");
+            if (!currentStart) form.setValue("start_date", todayDateString());
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [watchType]);
+    }, [watchType, watchRecurrenceUnit, watchInterval, form]);
+
+    const handleRecurrencePresetChange = (preset: "day" | "week" | "month" | "custom") => {
+        setRecurrencePreset(preset);
+        if (preset === "custom") {
+            if (!form.getValues("recurrence_interval")) form.setValue("recurrence_interval", "2");
+        } else {
+            form.setValue("recurrence_unit", preset);
+            form.setValue("recurrence_interval", "1");
+        }
+    };
 
     const isPending = addTask.isPending || updateTask.isPending;
 
@@ -404,21 +461,20 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{isEditing ? "Edit Task" : "Add Task"}</DialogTitle>
+                    <DialogTitle>{isEditing ? "Edit Task" : "New Task"}</DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Update your task details." : "Add something to your backlog."}
+                        {isEditing ? "Update your backlog task settings." : "Add a targeted item to your schedule."}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 py-1">
-                    <FieldGroup className="gap-3.5">
-                        {/* Type */}
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5 pt-1">
+                    <FieldGroup className="gap-4">
+                        {/* Task Type Switcher */}
                         <Field>
-                            <FieldLabel>Type</FieldLabel>
                             <Controller
-                                control={control}
+                                control={form.control}
                                 name="type"
                                 render={({ field }) => (
                                     <ToggleGroup
@@ -426,19 +482,13 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
                                         onValueChange={(val) => {
                                             if (val && val.length > 0) field.onChange(val[0] as TaskType);
                                         }}
-                                        className="grid grid-cols-2 w-full p-1 bg-muted/70 rounded-lg border border-border/60 gap-1"
+                                        className="grid grid-cols-2 w-full"
                                     >
-                                        <ToggleGroupItem
-                                            value="one_time"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
-                                        >
-                                            One-time
+                                        <ToggleGroupItem value="one_time" className="text-xs h-8.5 font-medium">
+                                            One-time Task
                                         </ToggleGroupItem>
-                                        <ToggleGroupItem
-                                            value="recurring"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
-                                        >
-                                            Recurring
+                                        <ToggleGroupItem value="recurring" className="text-xs h-8.5 font-medium">
+                                            Recurring Routine
                                         </ToggleGroupItem>
                                     </ToggleGroup>
                                 )}
@@ -446,168 +496,167 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
                         </Field>
 
                         {/* Title */}
-                        <Field data-invalid={Boolean(errors.title)}>
-                            <FieldLabel htmlFor="title">Title</FieldLabel>
-                            <Input
-                                id="title"
-                                placeholder="Task title (e.g., File tax returns)..."
-                                aria-invalid={Boolean(errors.title)}
-                                {...register("title")}
-                                className="h-9 text-xs bg-background"
-                                autoFocus
-                            />
-                            {errors.title && (
-                                <FieldDescription className="text-destructive text-[11px]">
-                                    {errors.title.message}
-                                </FieldDescription>
-                            )}
-                        </Field>
-
-                        {/* Description */}
-                        <Field>
-                            <FieldLabel htmlFor="description">Description</FieldLabel>
-                            <Input
-                                id="description"
-                                placeholder="Optional notes..."
-                                {...register("description")}
-                                className="h-9 text-xs bg-background"
-                            />
-                        </Field>
-
-                        {/* Category */}
-                        <Field>
-                            <FieldLabel>Category</FieldLabel>
-                            <Controller
-                                control={control}
-                                name="category_id"
-                                render={({ field }) => (
-                                    <CreatableCombobox
-                                        options={categories}
-                                        value={field.value ?? null}
-                                        onChange={field.onChange}
-                                        onCreateNew={(name) => createCategory.mutateAsync(name)}
-                                        placeholder="Category..."
-                                        className="h-9 text-xs bg-background"
+                        <Controller
+                            control={form.control}
+                            name="title"
+                            render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                    <FieldLabel htmlFor={field.name}>Task Title</FieldLabel>
+                                    <Input
+                                        {...field}
+                                        id={field.name}
+                                        placeholder="e.g., Review weekly sprint goals"
+                                        aria-invalid={fieldState.invalid}
+                                        autoFocus
+                                        className="h-9"
                                     />
-                                )}
-                            />
-                        </Field>
+                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
+                            )}
+                        />
 
-                        {/* Priority */}
-                        <Field>
-                            <FieldLabel>Priority</FieldLabel>
+                        {/* Primary Schedule Section */}
+                        {watchType === "one_time" ? (
                             <Controller
-                                control={control}
-                                name="priority"
-                                render={({ field }) => (
-                                    <ToggleGroup
-                                        value={[field.value]}
-                                        onValueChange={(val) => {
-                                            if (val && val.length > 0) field.onChange(val[0] as Priority);
-                                        }}
-                                        className="grid grid-cols-3 w-full p-1 bg-muted/70 rounded-lg border border-border/60 gap-1"
-                                    >
-                                        <ToggleGroupItem
-                                            value="low"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
-                                        >
-                                            Low
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem
-                                            value="medium"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
-                                        >
-                                            Medium
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem
-                                            value="high"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-destructive aria-pressed:text-destructive-foreground aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-destructive data-pressed:text-destructive-foreground data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
-                                        >
-                                            High
-                                        </ToggleGroupItem>
-                                    </ToggleGroup>
-                                )}
-                            />
-                        </Field>
-
-                        {/* One-time: Deadline */}
-                        {watchType === "one_time" && (
-                            <Field data-invalid={Boolean(errors.deadline)}>
-                                <FieldLabel htmlFor="deadline">Deadline</FieldLabel>
-                                <Controller
-                                    control={control}
-                                    name="deadline"
-                                    render={({ field }) => (
+                                control={form.control}
+                                name="deadline"
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor={field.name}>Target Deadline</FieldLabel>
                                         <DateTimePicker
-                                            id="deadline"
+                                            id={field.name}
                                             value={field.value ?? ""}
                                             onChange={field.onChange}
-                                            ariaInvalid={Boolean(errors.deadline)}
+                                            ariaInvalid={fieldState.invalid}
                                         />
-                                    )}
-                                />
-                            </Field>
-                        )}
+                                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                    </Field>
+                                )}
+                            />
+                        ) : (
+                            <div className="border border-border/80 rounded-xl p-3.5 bg-muted/20 flex flex-col gap-3.5">
+                                <Field>
+                                    <FieldLabel className="text-xs">Frequency</FieldLabel>
+                                    <ToggleGroup
+                                        value={[recurrencePreset]}
+                                        onValueChange={(val) => {
+                                            if (val && val.length > 0) {
+                                                handleRecurrencePresetChange(
+                                                    val[0] as "day" | "week" | "month" | "custom",
+                                                );
+                                            }
+                                        }}
+                                        className="grid grid-cols-4 w-full"
+                                    >
+                                        <ToggleGroupItem value="day" className="text-xs h-8">
+                                            Daily
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="week" className="text-xs h-8">
+                                            Weekly
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="month" className="text-xs h-8">
+                                            Monthly
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="custom" className="text-xs h-8">
+                                            Custom
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                </Field>
 
-                        {/* Recurring: interval, start date, end condition */}
-                        {watchType === "recurring" && (
-                            <div className="border border-border/60 rounded-xl p-3 bg-muted/20 flex flex-col gap-3.5">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Field data-invalid={Boolean(errors.recurrence_interval)}>
-                                        <FieldLabel htmlFor="recurrence_interval" className="text-xs">
-                                            Every
-                                        </FieldLabel>
+                                {recurrencePreset === "custom" && (
+                                    <div className="grid grid-cols-2 gap-3">
                                         <Controller
-                                            control={control}
+                                            control={form.control}
                                             name="recurrence_interval"
-                                            render={({ field }) => (
-                                                <NumberStepper
-                                                    id="recurrence_interval"
-                                                    value={field.value ?? ""}
-                                                    onChange={field.onChange}
-                                                    min={1}
-                                                    placeholder="1"
-                                                    ariaInvalid={Boolean(errors.recurrence_interval)}
-                                                />
+                                            render={({ field, fieldState }) => (
+                                                <Field data-invalid={fieldState.invalid}>
+                                                    <FieldLabel htmlFor={field.name} className="text-xs">
+                                                        Repeat Every
+                                                    </FieldLabel>
+                                                    <NumberStepper
+                                                        id={field.name}
+                                                        value={field.value ?? ""}
+                                                        onChange={field.onChange}
+                                                        min={1}
+                                                        placeholder="1"
+                                                        ariaInvalid={fieldState.invalid}
+                                                    />
+                                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                                </Field>
                                             )}
                                         />
-                                        {errors.recurrence_interval && (
-                                            <FieldDescription className="text-destructive text-[11px]">
-                                                {errors.recurrence_interval.message}
-                                            </FieldDescription>
+
+                                        <Field>
+                                            <FieldLabel className="text-xs">Interval Unit</FieldLabel>
+                                            <Controller
+                                                control={form.control}
+                                                name="recurrence_unit"
+                                                render={({ field }) => (
+                                                    <ToggleGroup
+                                                        value={[field.value ?? "week"]}
+                                                        onValueChange={(val) => {
+                                                            if (val.length > 0)
+                                                                field.onChange(val[0] as RecurrenceUnit);
+                                                        }}
+                                                        className="grid grid-cols-3 w-full"
+                                                    >
+                                                        <ToggleGroupItem value="day" className="text-xs h-8.5">
+                                                            Day
+                                                        </ToggleGroupItem>
+                                                        <ToggleGroupItem value="week" className="text-xs h-8.5">
+                                                            Wk
+                                                        </ToggleGroupItem>
+                                                        <ToggleGroupItem value="month" className="text-xs h-8.5">
+                                                            Mo
+                                                        </ToggleGroupItem>
+                                                    </ToggleGroup>
+                                                )}
+                                            />
+                                        </Field>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Controller
+                                        control={form.control}
+                                        name="start_date"
+                                        render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                                <FieldLabel htmlFor={field.name} className="text-xs">
+                                                    Starts On
+                                                </FieldLabel>
+                                                <DatePicker
+                                                    id={field.name}
+                                                    value={field.value ?? ""}
+                                                    onChange={field.onChange}
+                                                    ariaInvalid={fieldState.invalid}
+                                                />
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            </Field>
                                         )}
-                                    </Field>
+                                    />
 
                                     <Field>
-                                        <FieldLabel className="text-xs">Unit</FieldLabel>
+                                        <FieldLabel className="text-xs">Termination</FieldLabel>
                                         <Controller
-                                            control={control}
-                                            name="recurrence_unit"
+                                            control={form.control}
+                                            name="recurrence_end_type"
                                             render={({ field }) => (
                                                 <ToggleGroup
-                                                    value={[field.value ?? "week"]}
+                                                    value={[field.value ?? "never"]}
                                                     onValueChange={(val) => {
-                                                        if (val.length > 0) field.onChange(val[0] as RecurrenceUnit);
+                                                        if (val.length > 0) field.onChange(val[0] as RecurrenceEndType);
                                                     }}
-                                                    className="grid grid-cols-3 w-full p-1 bg-muted/40 rounded-lg border border-border/50 gap-1"
+                                                    className="grid grid-cols-3 w-full"
                                                 >
-                                                    <ToggleGroupItem
-                                                        value="day"
-                                                        className="h-7 text-xs font-normal rounded-md"
-                                                    >
-                                                        Day
+                                                    <ToggleGroupItem value="never" className="text-xs h-8.5">
+                                                        Never
                                                     </ToggleGroupItem>
-                                                    <ToggleGroupItem
-                                                        value="week"
-                                                        className="h-7 text-xs font-normal rounded-md"
-                                                    >
-                                                        Week
+                                                    <ToggleGroupItem value="after_n" className="text-xs h-8.5">
+                                                        Count
                                                     </ToggleGroupItem>
-                                                    <ToggleGroupItem
-                                                        value="month"
-                                                        className="h-7 text-xs font-normal rounded-md"
-                                                    >
-                                                        Month
+                                                    <ToggleGroupItem value="on_date" className="text-xs h-8.5">
+                                                        Date
                                                     </ToggleGroupItem>
                                                 </ToggleGroup>
                                             )}
@@ -615,217 +664,287 @@ export function AddTaskDialog({ open, onOpenChange, taskToEdit }: AddTaskDialogP
                                     </Field>
                                 </div>
 
-                                <Field data-invalid={Boolean(errors.start_date)}>
-                                    <FieldLabel htmlFor="start_date" className="text-xs">
-                                        Start date
-                                    </FieldLabel>
-                                    <Controller
-                                        control={control}
-                                        name="start_date"
-                                        render={({ field }) => (
-                                            <DatePicker
-                                                id="start_date"
-                                                value={field.value ?? ""}
-                                                onChange={field.onChange}
-                                                ariaInvalid={Boolean(errors.start_date)}
-                                            />
-                                        )}
-                                    />
-                                    {errors.start_date && (
-                                        <FieldDescription className="text-destructive text-[11px]">
-                                            {errors.start_date.message}
-                                        </FieldDescription>
-                                    )}
-                                </Field>
-
-                                <Field>
-                                    <FieldLabel className="text-xs">Ends</FieldLabel>
-                                    <Controller
-                                        control={control}
-                                        name="recurrence_end_type"
-                                        render={({ field }) => (
-                                            <ToggleGroup
-                                                value={[field.value ?? "never"]}
-                                                onValueChange={(val) => {
-                                                    if (val.length > 0) field.onChange(val[0] as RecurrenceEndType);
-                                                }}
-                                                className="grid grid-cols-3 w-full p-1 bg-muted/40 rounded-lg border border-border/50 gap-1"
-                                            >
-                                                <ToggleGroupItem
-                                                    value="never"
-                                                    className="h-7 text-xs font-normal rounded-md"
-                                                >
-                                                    Never
-                                                </ToggleGroupItem>
-                                                <ToggleGroupItem
-                                                    value="after_n"
-                                                    className="h-7 text-xs font-normal rounded-md"
-                                                >
-                                                    After N
-                                                </ToggleGroupItem>
-                                                <ToggleGroupItem
-                                                    value="on_date"
-                                                    className="h-7 text-xs font-normal rounded-md"
-                                                >
-                                                    On date
-                                                </ToggleGroupItem>
-                                            </ToggleGroup>
-                                        )}
-                                    />
-                                </Field>
-
                                 {watchEndType === "after_n" && (
-                                    <Field data-invalid={Boolean(errors.recurrence_end_count)}>
-                                        <FieldLabel htmlFor="recurrence_end_count" className="text-xs">
-                                            Number of completions
-                                        </FieldLabel>
-                                        <Controller
-                                            control={control}
-                                            name="recurrence_end_count"
-                                            render={({ field }) => (
+                                    <Controller
+                                        control={form.control}
+                                        name="recurrence_end_count"
+                                        render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                                <FieldLabel htmlFor={field.name} className="text-xs">
+                                                    Total Occurrences
+                                                </FieldLabel>
                                                 <NumberStepper
-                                                    id="recurrence_end_count"
+                                                    id={field.name}
                                                     value={field.value ?? ""}
                                                     onChange={field.onChange}
                                                     min={1}
-                                                    placeholder="e.g. 10"
-                                                    ariaInvalid={Boolean(errors.recurrence_end_count)}
+                                                    placeholder="10"
+                                                    ariaInvalid={fieldState.invalid}
                                                 />
-                                            )}
-                                        />
-                                        {errors.recurrence_end_count && (
-                                            <FieldDescription className="text-destructive text-[11px]">
-                                                {errors.recurrence_end_count.message}
-                                            </FieldDescription>
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            </Field>
                                         )}
-                                    </Field>
+                                    />
                                 )}
 
                                 {watchEndType === "on_date" && (
-                                    <Field data-invalid={Boolean(errors.recurrence_end_date)}>
-                                        <FieldLabel htmlFor="recurrence_end_date" className="text-xs">
-                                            End date
-                                        </FieldLabel>
-                                        <Controller
-                                            control={control}
-                                            name="recurrence_end_date"
-                                            render={({ field }) => (
+                                    <Controller
+                                        control={form.control}
+                                        name="recurrence_end_date"
+                                        render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                                <FieldLabel htmlFor={field.name} className="text-xs">
+                                                    End Date
+                                                </FieldLabel>
                                                 <DatePicker
-                                                    id="recurrence_end_date"
+                                                    id={field.name}
                                                     value={field.value ?? ""}
                                                     onChange={field.onChange}
-                                                    ariaInvalid={Boolean(errors.recurrence_end_date)}
+                                                    ariaInvalid={fieldState.invalid}
                                                 />
-                                            )}
-                                        />
-                                        {errors.recurrence_end_date && (
-                                            <FieldDescription className="text-destructive text-[11px]">
-                                                {errors.recurrence_end_date.message}
-                                            </FieldDescription>
+                                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                            </Field>
                                         )}
-                                    </Field>
+                                    />
                                 )}
                             </div>
                         )}
 
-                        {/* Estimated minutes */}
-                        <Field data-invalid={Boolean(errors.estimated_minutes)}>
-                            <FieldLabel htmlFor="estimated_minutes">Est. minutes</FieldLabel>
-                            <Controller
-                                control={control}
-                                name="estimated_minutes"
-                                render={({ field }) => (
-                                    <NumberStepper
-                                        id="estimated_minutes"
-                                        value={field.value ?? ""}
-                                        onChange={field.onChange}
-                                        min={1}
-                                        step={5}
-                                        placeholder="e.g. 30"
-                                        ariaInvalid={Boolean(errors.estimated_minutes)}
-                                    />
+                        {/* Settings-Style Progressive Disclosure Section */}
+                        <div className="flex flex-col gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setIsAdvancedOpen((prev) => !prev)}
+                                className="flex items-center justify-between px-1 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none select-none"
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <SlidersHorizontal className="size-3.5" />
+                                    <span>Additional Details</span>
+                                </span>
+                                {isAdvancedOpen ? (
+                                    <ChevronUp className="size-3.5" />
+                                ) : (
+                                    <ChevronDown className="size-3.5" />
                                 )}
-                            />
-                            {errors.estimated_minutes && (
-                                <FieldDescription className="text-destructive text-[11px]">
-                                    {errors.estimated_minutes.message}
-                                </FieldDescription>
-                            )}
-                        </Field>
+                            </button>
 
-                        {/* Notifications */}
-                        <div className="border border-border/60 rounded-xl p-3 bg-muted/20 flex flex-col gap-3">
-                            <Field orientation="horizontal" className="justify-between items-center">
-                                <div className="flex flex-col gap-0.5">
-                                    <FieldLabel htmlFor="notify_enabled" className="text-xs">
-                                        Enable Notification
-                                    </FieldLabel>
-                                    <FieldDescription className="text-[11px]">
-                                        {watchType === "one_time"
-                                            ? "Get reminded before deadline"
-                                            : "Get reminded when assigned to a slot"}
-                                    </FieldDescription>
-                                </div>
-                                <Controller
-                                    control={control}
-                                    name="notify_enabled"
-                                    render={({ field }) => (
-                                        <Switch
-                                            id="notify_enabled"
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    )}
-                                />
-                            </Field>
+                            {isAdvancedOpen && (
+                                <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                                    <CardContent className="p-0 flex flex-col gap-0">
+                                        {/* Row 1: Category */}
+                                        <div className="flex items-center justify-between gap-4 p-3.5 px-4">
+                                            <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+                                                <Tag className="size-4 text-muted-foreground shrink-0" />
+                                                <span className="text-xs font-medium text-foreground">Category</span>
+                                            </div>
+                                            <div className="w-48 max-w-[60%]">
+                                                <Controller
+                                                    control={form.control}
+                                                    name="category_id"
+                                                    render={({ field }) => (
+                                                        <CreatableCombobox
+                                                            options={categories}
+                                                            value={field.value ?? null}
+                                                            onChange={field.onChange}
+                                                            onCreateNew={(name) => createCategory.mutateAsync(name)}
+                                                            placeholder="Select category..."
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
 
-                            {watchNotifyEnabled && (
-                                <Field
-                                    className="pt-2 border-t border-border/40"
-                                    data-invalid={Boolean(errors.notify_lead_minutes)}
-                                >
-                                    <FieldLabel htmlFor="notify_lead_minutes" className="text-xs">
-                                        Remind before (minutes)
-                                    </FieldLabel>
-                                    <Controller
-                                        control={control}
-                                        name="notify_lead_minutes"
-                                        render={({ field }) => (
-                                            <NumberStepper
-                                                id="notify_lead_minutes"
-                                                value={field.value ?? ""}
-                                                onChange={field.onChange}
-                                                min={0}
-                                                step={5}
-                                                placeholder="10"
-                                                ariaInvalid={Boolean(errors.notify_lead_minutes)}
-                                                className="h-8"
+                                        <div className="h-px bg-border/50 mx-4" />
+
+                                        {/* Row 2: Priority */}
+                                        <div className="flex items-center justify-between gap-4 p-3.5 px-4">
+                                            <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+                                                <Flag className="size-4 text-muted-foreground shrink-0" />
+                                                <span className="text-xs font-medium text-foreground">Priority</span>
+                                            </div>
+                                            <Controller
+                                                control={form.control}
+                                                name="priority"
+                                                render={({ field }) => (
+                                                    <ToggleGroup
+                                                        value={[field.value]}
+                                                        onValueChange={(val) => {
+                                                            if (val && val.length > 0)
+                                                                field.onChange(val[0] as Priority);
+                                                        }}
+                                                        className="w-44 max-w-[55%] grid grid-cols-3"
+                                                    >
+                                                        <ToggleGroupItem value="low" className="text-xs h-7.5 px-1">
+                                                            Low
+                                                        </ToggleGroupItem>
+                                                        <ToggleGroupItem value="medium" className="text-xs h-7.5 px-1">
+                                                            Med
+                                                        </ToggleGroupItem>
+                                                        <ToggleGroupItem value="high" className="text-xs h-7.5 px-1">
+                                                            High
+                                                        </ToggleGroupItem>
+                                                    </ToggleGroup>
+                                                )}
                                             />
-                                        )}
-                                    />
-                                </Field>
+                                        </div>
+
+                                        <div className="h-px bg-border/50 mx-4" />
+
+                                        {/* Row 3: Duration Chips */}
+                                        <div className="flex flex-col gap-2.5 p-3.5 px-4">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <Timer className="size-4 text-muted-foreground shrink-0" />
+                                                <span className="text-xs font-medium text-foreground">
+                                                    Estimated Duration
+                                                </span>
+                                            </div>
+                                            <Controller
+                                                control={form.control}
+                                                name="estimated_minutes"
+                                                render={({ field }) => (
+                                                    <ToggleGroup
+                                                        value={[field.value || "none"]}
+                                                        onValueChange={(val) => {
+                                                            if (val && val.length > 0) {
+                                                                const chosen = val[0];
+                                                                field.onChange(chosen === "none" ? "" : chosen);
+                                                            }
+                                                        }}
+                                                        className="grid grid-cols-6 w-full"
+                                                    >
+                                                        {DURATION_CHIPS.map((chip) => (
+                                                            <ToggleGroupItem
+                                                                key={chip.value}
+                                                                value={chip.value}
+                                                                className="text-xs h-7.5 px-1"
+                                                            >
+                                                                {chip.label}
+                                                            </ToggleGroupItem>
+                                                        ))}
+                                                    </ToggleGroup>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="h-px bg-border/50 mx-4" />
+
+                                        {/* Row 4: Expandable Multiline Notes */}
+                                        <div className="flex flex-col gap-2 p-3.5 px-4">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <FileText className="size-4 text-muted-foreground shrink-0" />
+                                                <span className="text-xs font-medium text-foreground">
+                                                    Notes & Context
+                                                </span>
+                                            </div>
+                                            <Controller
+                                                control={form.control}
+                                                name="description"
+                                                render={({ field, fieldState }) => (
+                                                    <Textarea
+                                                        {...field}
+                                                        id={field.name}
+                                                        placeholder="Add reference links, acceptance criteria, or details..."
+                                                        rows={2}
+                                                        aria-invalid={fieldState.invalid}
+                                                        className="text-xs resize-y min-h-[58px] bg-background"
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="h-px bg-border/50 mx-4" />
+
+                                        {/* Row 5: Notification Switch & Sub-Row */}
+                                        <div className="flex flex-col gap-2.5 p-3.5 px-4">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <Bell className="size-4 text-muted-foreground shrink-0" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-medium text-foreground">
+                                                            Reminder Alert
+                                                        </span>
+                                                        <span className="text-[11px] text-muted-foreground font-normal">
+                                                            {watchType === "one_time"
+                                                                ? "Notify before deadline"
+                                                                : "Notify on scheduled days"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <Controller
+                                                    control={form.control}
+                                                    name="notify_enabled"
+                                                    render={({ field }) => (
+                                                        <Switch
+                                                            id="notify-switch"
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
+
+                                            {watchNotifyEnabled && (
+                                                <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/40">
+                                                    <span className="text-xs text-muted-foreground font-normal">
+                                                        Alert Timing
+                                                    </span>
+                                                    <Controller
+                                                        control={form.control}
+                                                        name="notify_lead_minutes"
+                                                        render={({ field }) => (
+                                                            <div className="w-36 max-w-[50%]">
+                                                                <Select
+                                                                    value={String(field.value)}
+                                                                    onValueChange={(val) => {
+                                                                        if (val !== null) field.onChange(val);
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="h-7.5 text-xs">
+                                                                        <SelectValue placeholder="Select lead" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectGroup>
+                                                                            {NOTIFY_LEAD_OPTIONS.map((opt) => (
+                                                                                <SelectItem
+                                                                                    key={opt.value}
+                                                                                    value={opt.value}
+                                                                                >
+                                                                                    {opt.label}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectGroup>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        )}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             )}
                         </div>
                     </FieldGroup>
 
-                    <DialogFooter className="pt-2 gap-2 sm:gap-0">
+                    {/* Standardized Koyoyomi Modal Footer */}
+                    <DialogFooter className="gap-2 sm:gap-0 pt-2">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={isPending}
-                            size="sm"
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isPending} size="sm">
+                        <Button type="submit" disabled={isPending}>
                             {isPending ? (
                                 <>
                                     <Loader2 data-icon="inline-start" className="animate-spin" />
                                     <span>Saving...</span>
                                 </>
                             ) : (
-                                <span>{isEditing ? "Save Changes" : "Add Task"}</span>
+                                <span>{isEditing ? "Save Changes" : "Create Task"}</span>
                             )}
                         </Button>
                     </DialogFooter>

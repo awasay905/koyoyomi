@@ -16,7 +16,7 @@ export function CategoryFilterBar({ categories, selectedCategory, onSelectCatego
                 variant={selectedCategory === null ? "default" : "outline"}
                 size="sm"
                 onClick={() => onSelectCategory(null)}
-                className="h-6.5 text-xs rounded-full px-3 shrink-0 font-normal"
+                className="h-7 text-xs rounded-full px-3 shrink-0 font-medium"
             >
                 All
             </Button>
@@ -27,12 +27,12 @@ export function CategoryFilterBar({ categories, selectedCategory, onSelectCatego
                     variant={selectedCategory === cat.id ? "default" : "outline"}
                     size="sm"
                     onClick={() => onSelectCategory(cat.id)}
-                    className="h-6.5 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
+                    className="h-7 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
                 >
                     {cat.color && (
-                        <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        <span className="size-2 rounded-full shrink-0 ring-1 ring-border/50" style={{ backgroundColor: cat.color }} />
                     )}
-                    {cat.name}
+                    <span>{cat.name}</span>
                 </Button>
             ))}
         </div>

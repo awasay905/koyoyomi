@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FieldGroup, Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { FieldGroup, Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 import { scheduleBlockSchema, type ScheduleBlockValues } from "./schemas";
@@ -27,36 +27,49 @@ interface BlockFormDialogProps {
     dayTypeId: string;
     blockToEdit?: ScheduleBlock | null;
     existingCount: number;
+    defaultStartTime?: string;
 }
 
-const emptyDefaults: ScheduleBlockValues = {
-    title: "",
-    block_type: "fixed",
-    start_time: "09:00",
-    end_time: "09:30",
-    notes: "",
-};
+function calculateDefaultEndTime(startTime: string): string {
+    const parts = startTime.split(":");
+    let hours = parseInt(parts[0] || "08", 10);
+    let minutes = parseInt(parts[1] || "00", 10) + 30;
 
-export function BlockFormDialog({ open, onOpenChange, dayTypeId, blockToEdit, existingCount }: BlockFormDialogProps) {
+    if (minutes >= 60) {
+        hours = (hours + 1) % 24;
+        minutes -= 60;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function BlockFormDialog({
+    open,
+    onOpenChange,
+    dayTypeId,
+    blockToEdit,
+    existingCount,
+    defaultStartTime = "08:00",
+}: BlockFormDialogProps) {
     const isEditing = Boolean(blockToEdit);
     const addBlock = useAddScheduleBlock();
     const updateBlock = useUpdateScheduleBlock(dayTypeId);
 
-    const {
-        register,
-        handleSubmit,
-        control,
-        reset,
-        formState: { errors },
-    } = useForm<ScheduleBlockValues>({
+    const form = useForm<ScheduleBlockValues>({
         resolver: zodResolver(scheduleBlockSchema),
-        defaultValues: emptyDefaults,
+        defaultValues: {
+            title: "",
+            block_type: "fixed",
+            start_time: defaultStartTime,
+            end_time: calculateDefaultEndTime(defaultStartTime),
+            notes: "",
+        },
     });
 
     useEffect(() => {
         if (!open) return;
         if (blockToEdit) {
-            reset({
+            form.reset({
                 title: blockToEdit.title,
                 block_type: blockToEdit.block_type,
                 start_time: blockToEdit.start_time.slice(0, 5),
@@ -64,9 +77,15 @@ export function BlockFormDialog({ open, onOpenChange, dayTypeId, blockToEdit, ex
                 notes: blockToEdit.notes ?? "",
             });
         } else {
-            reset(emptyDefaults);
+            form.reset({
+                title: "",
+                block_type: "fixed",
+                start_time: defaultStartTime,
+                end_time: calculateDefaultEndTime(defaultStartTime),
+                notes: "",
+            });
         }
-    }, [open, blockToEdit, reset]);
+    }, [open, blockToEdit, defaultStartTime, form]);
 
     const isPending = addBlock.isPending || updateBlock.isPending;
 
@@ -91,37 +110,38 @@ export function BlockFormDialog({ open, onOpenChange, dayTypeId, blockToEdit, ex
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? "Edit Block" : "Add Block"}</DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Update this schedule block." : "Add a block to this day-type's timeline."}
+                        {isEditing ? "Modify block timing and type." : "Add a routine slot to this template."}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 py-1">
-                    <FieldGroup className="gap-3.5">
-                        <Field data-invalid={Boolean(errors.title)}>
-                            <FieldLabel htmlFor="block_title">Title</FieldLabel>
-                            <Input
-                                id="block_title"
-                                placeholder="e.g., Wake up, Work block 1"
-                                aria-invalid={Boolean(errors.title)}
-                                {...register("title")}
-                                className="h-9 text-xs bg-background"
-                                autoFocus
-                            />
-                            {errors.title && (
-                                <FieldDescription className="text-destructive text-[11px]">
-                                    {errors.title.message}
-                                </FieldDescription>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5 pt-2">
+                    <FieldGroup className="gap-4">
+                        <Controller
+                            control={form.control}
+                            name="title"
+                            render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                    <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+                                    <Input
+                                        {...field}
+                                        id={field.name}
+                                        placeholder="e.g., Deep Work, Gym, Commute"
+                                        aria-invalid={fieldState.invalid}
+                                        autoFocus
+                                    />
+                                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
                             )}
-                        </Field>
+                        />
 
                         <Field>
-                            <FieldLabel>Block type</FieldLabel>
+                            <FieldLabel>Type</FieldLabel>
                             <Controller
-                                control={control}
+                                control={form.control}
                                 name="block_type"
                                 render={({ field }) => (
                                     <ToggleGroup
@@ -129,87 +149,93 @@ export function BlockFormDialog({ open, onOpenChange, dayTypeId, blockToEdit, ex
                                         onValueChange={(val) => {
                                             if (val && val.length > 0) field.onChange(val[0] as BlockType);
                                         }}
-                                        className="grid grid-cols-2 w-full p-1 bg-muted/70 rounded-lg border border-border/60 gap-1"
+                                        className="grid grid-cols-2 w-full p-0.5 bg-muted/60 rounded-lg border border-border/60"
                                     >
                                         <ToggleGroupItem
                                             value="fixed"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
+                                            className="h-8 text-xs rounded-md data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:font-medium data-[state=on]:shadow-2xs"
                                         >
-                                            Fixed
+                                            Fixed (Routine)
                                         </ToggleGroupItem>
                                         <ToggleGroupItem
                                             value="free"
-                                            className="h-7 text-xs text-muted-foreground rounded-md transition-colors aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:font-semibold aria-pressed:shadow-xs data-pressed:bg-foreground data-pressed:text-background data-[state=on]:bg-foreground data-[state=on]:text-background"
+                                            className="h-8 text-xs rounded-md data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:font-medium data-[state=on]:shadow-2xs"
                                         >
-                                            Free
+                                            Free (Task Slot)
                                         </ToggleGroupItem>
                                     </ToggleGroup>
                                 )}
                             />
-                            <FieldDescription className="text-[11px]">
-                                Fixed blocks are informational (prayer, work, commute). Free blocks are open slots you
-                                can assign tasks to.
-                            </FieldDescription>
                         </Field>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <Field data-invalid={Boolean(errors.start_time)}>
-                                <FieldLabel htmlFor="start_time">Start time</FieldLabel>
-                                <Input
-                                    id="start_time"
-                                    type="time"
-                                    step={300}
-                                    aria-invalid={Boolean(errors.start_time)}
-                                    {...register("start_time")}
-                                    className="h-9 text-xs font-mono bg-background"
-                                />
-                                {errors.start_time && (
-                                    <FieldDescription className="text-destructive text-[11px]">
-                                        {errors.start_time.message}
-                                    </FieldDescription>
+                            <Controller
+                                control={form.control}
+                                name="start_time"
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor={field.name}>Start Time</FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id={field.name}
+                                            type="time"
+                                            step={300}
+                                            className="font-mono"
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                    </Field>
                                 )}
-                            </Field>
+                            />
 
-                            <Field data-invalid={Boolean(errors.end_time)}>
-                                <FieldLabel htmlFor="end_time">End time</FieldLabel>
-                                <Input
-                                    id="end_time"
-                                    type="time"
-                                    step={300}
-                                    aria-invalid={Boolean(errors.end_time)}
-                                    {...register("end_time")}
-                                    className="h-9 text-xs font-mono bg-background"
-                                />
-                                {errors.end_time && (
-                                    <FieldDescription className="text-destructive text-[11px]">
-                                        {errors.end_time.message}
-                                    </FieldDescription>
+                            <Controller
+                                control={form.control}
+                                name="end_time"
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor={field.name}>End Time</FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id={field.name}
+                                            type="time"
+                                            step={300}
+                                            className="font-mono"
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                    </Field>
                                 )}
-                            </Field>
+                            />
                         </div>
 
-                        <Field>
-                            <FieldLabel htmlFor="notes">Notes</FieldLabel>
-                            <Textarea
-                                id="notes"
-                                placeholder="Optional notes..."
-                                {...register("notes")}
-                                className="text-xs bg-background min-h-16"
-                            />
-                        </Field>
+                        <Controller
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <Field>
+                                    <FieldLabel htmlFor={field.name}>Notes (Optional)</FieldLabel>
+                                    <Textarea
+                                        {...field}
+                                        id={field.name}
+                                        placeholder="Specific goals or guidelines..."
+                                        className="min-h-16 resize-none"
+                                        value={field.value ?? ""}
+                                    />
+                                </Field>
+                            )}
+                        />
                     </FieldGroup>
 
-                    <DialogFooter className="pt-2 gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 sm:gap-0 pt-2">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={isPending}
-                            size="sm"
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isPending} size="sm">
+                        <Button type="submit" disabled={isPending}>
                             {isPending ? (
                                 <>
                                     <Loader2 data-icon="inline-start" className="animate-spin" />

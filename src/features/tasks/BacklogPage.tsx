@@ -3,6 +3,7 @@ import { Plus, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 import { useNow } from "@/hooks/useNow";
@@ -16,7 +17,7 @@ import { AddTaskDialog } from "./AddTaskDialog";
 import { usePendingAssignmentsQuery } from "@/features/task_assignments/hooks";
 import { AssignToDayDialog } from "@/features/task_assignments/AssignToDayDialog";
 
-type QuickFilter = "all" | "overdue" | "due_soon" | "unassigned";
+type QuickFilter = "all" | "unassigned" | "overdue" | "due_soon";
 
 export function BacklogPage() {
     const { data: tasks = [], isLoading: isTasksLoading } = useTasksQuery();
@@ -31,14 +32,22 @@ export function BacklogPage() {
 
     const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [hiddenTaskIds, setHiddenTaskIds] = useState<Set<string>>(new Set());
 
     const isLoading = isTasksLoading || isAssignmentsLoading;
+
+    const handleTaskCompleted = (taskId: string) => {
+        setTimeout(() => {
+            setHiddenTaskIds((prev) => new Set(prev).add(taskId));
+        }, 3500);
+    };
 
     const { rows, activeCount, overdueCount, unassignedCount } = useMemo(() => {
         const next48h = now + 48 * 60 * 60 * 1000;
         const assignedTaskIds = new Set(pendingAssignments.map((a) => a.task_id));
 
         const withDueInfo = tasks
+            .filter((t) => !hiddenTaskIds.has(t.id))
             .filter((t) => (t.type === "one_time" ? t.status === "active" : true))
             .map((t) => {
                 if (t.type === "recurring") {
@@ -85,7 +94,7 @@ export function BacklogPage() {
         });
 
         return { rows: sorted, activeCount: withDueInfo.length, overdueCount: ovCount, unassignedCount: unassignedC };
-    }, [tasks, completions, pendingAssignments, quickFilter, selectedCategory, now]);
+    }, [tasks, completions, pendingAssignments, quickFilter, selectedCategory, now, hiddenTaskIds]);
 
     const handleOpenCreate = () => {
         setTaskToEdit(null);
@@ -102,92 +111,95 @@ export function BacklogPage() {
     };
 
     return (
-        <div className="max-w-xl mx-auto px-4 py-5 flex flex-col gap-4 pb-28">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold tracking-tight">Backlog</h1>
-                    <Badge variant="secondary" className="rounded-full px-2 text-xs font-medium">
-                        {activeCount}
-                    </Badge>
+        <div className="mx-auto flex max-w-lg flex-col gap-8 px-4 py-8 pb-28">
+            {/* Page Header */}
+            <header className="flex items-start justify-between gap-4 min-w-0">
+                <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-xl font-bold tracking-tight truncate leading-none">Backlog</h1>
+                        {activeCount > 0 && (
+                            <Badge variant="secondary" className="rounded-md px-1.5 py-0 text-[11px] font-mono h-5">
+                                {activeCount}
+                            </Badge>
+                        )}
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate mt-1.5">
+                        Prioritize, schedule, and organize pending items.
+                    </p>
                 </div>
 
-                <Button size="sm" onClick={handleOpenCreate} className="h-8 px-2.5 text-xs font-medium gap-1.5">
+                <Button size="sm" onClick={handleOpenCreate} className="shrink-0">
                     <Plus data-icon="inline-start" />
-                    <span>Add Task</span>
+                    <span>New Task</span>
                 </Button>
-            </div>
+            </header>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {/* Filter Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-2 scrollbar-none">
                 <Button
-                    variant={quickFilter === "all" && selectedCategory === null ? "default" : "outline"}
+                    variant={quickFilter === "all" && selectedCategory === null ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => {
                         setQuickFilter("all");
                         setSelectedCategory(null);
                     }}
-                    className="h-6.5 text-xs rounded-full px-3 shrink-0 font-normal"
+                    className="h-7 text-xs px-2.5 shrink-0"
                 >
                     All
                 </Button>
 
                 <Button
-                    variant={quickFilter === "unassigned" ? "default" : "outline"}
+                    variant={quickFilter === "unassigned" ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => {
                         setQuickFilter("unassigned");
                         setSelectedCategory(null);
                     }}
-                    className="h-6.5 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
+                    className="h-7 text-xs px-2.5 shrink-0 gap-1.5"
                 >
                     <span>Unassigned</span>
                     {unassignedCount > 0 && (
-                        <Badge variant="secondary" className="px-1 text-[10px] h-3.5 rounded-full font-normal">
-                            {unassignedCount}
-                        </Badge>
+                        <span className="text-[10px] font-mono text-muted-foreground">{unassignedCount}</span>
                     )}
                 </Button>
 
                 <Button
-                    variant={quickFilter === "overdue" ? "default" : "outline"}
+                    variant={quickFilter === "overdue" ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => {
                         setQuickFilter("overdue");
                         setSelectedCategory(null);
                     }}
-                    className="h-6.5 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
+                    className="h-7 text-xs px-2.5 shrink-0 gap-1.5"
                 >
                     <span>Overdue</span>
-                    {overdueCount > 0 && (
-                        <Badge variant="destructive" className="px-1 text-[10px] h-3.5 rounded-full font-normal">
-                            {overdueCount}
-                        </Badge>
-                    )}
+                    {overdueCount > 0 && <span className="text-[10px] font-mono text-destructive">{overdueCount}</span>}
                 </Button>
 
                 <Button
-                    variant={quickFilter === "due_soon" ? "default" : "outline"}
+                    variant={quickFilter === "due_soon" ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => {
                         setQuickFilter("due_soon");
                         setSelectedCategory(null);
                     }}
-                    className="h-6.5 text-xs rounded-full px-3 shrink-0 font-normal"
+                    className="h-7 text-xs px-2.5 shrink-0"
                 >
                     Due soon
                 </Button>
 
-                {categories.length > 0 && <div className="h-3.5 w-[1px] bg-border shrink-0 mx-0.5" />}
+                {categories.length > 0 && <div className="h-4 w-px bg-border/60 shrink-0 mx-1" />}
 
                 {categories.map((cat) => (
                     <Button
                         key={cat.id}
-                        variant={selectedCategory === cat.id ? "default" : "outline"}
+                        variant={selectedCategory === cat.id ? "secondary" : "ghost"}
                         size="sm"
                         onClick={() => {
                             setSelectedCategory(selectedCategory === cat.id ? null : cat.id);
                             setQuickFilter("all");
                         }}
-                        className="h-6.5 text-xs rounded-full px-3 shrink-0 gap-1.5 font-normal"
+                        className="h-7 text-xs px-2.5 shrink-0 gap-1.5"
                     >
                         {cat.color && (
                             <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
@@ -197,44 +209,68 @@ export function BacklogPage() {
                 ))}
             </div>
 
-            <div className="flex flex-col gap-4 pt-1">
+            {/* Content Section */}
+            <section className="flex flex-col gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Pending Tasks
+                </h2>
+
                 {isLoading ? (
-                    <div className="flex flex-col gap-2">
-                        <Skeleton className="h-16 w-full rounded-xl" />
-                        <Skeleton className="h-16 w-full rounded-xl" />
-                    </div>
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="flex flex-col">
+                                    <div className="flex items-center justify-between p-3.5 px-4 h-14">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="size-4 rounded-md" />
+                                            <div className="flex flex-col gap-1.5">
+                                                <Skeleton className="h-3.5 w-32 rounded-md" />
+                                                <Skeleton className="h-2.5 w-20 rounded-md" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-4 w-12 rounded-md" />
+                                    </div>
+                                    {i < 3 && <div className="h-px bg-border/50 mx-4" />}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
                 ) : rows.length === 0 ? (
-                    <Empty className="py-10 border border-dashed rounded-xl bg-card/50">
+                    <Empty className="py-12 border border-dashed border-border/80 rounded-xl bg-card/40">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
                                 <CheckCircle2 />
                             </EmptyMedia>
-                            <EmptyTitle className="text-xs">Nothing on your plate</EmptyTitle>
-                            <EmptyDescription className="text-[11px] max-w-xs">
-                                You&apos;re all caught up! Add a new task to get started.
+                            <EmptyTitle>No pending tasks</EmptyTitle>
+                            <EmptyDescription className="max-w-[260px]">
+                                Your backlog is clear. Create a new task to organize future actions.
                             </EmptyDescription>
                         </EmptyHeader>
                         <EmptyContent>
-                            <Button size="sm" variant="outline" onClick={handleOpenCreate} className="h-7 text-xs">
+                            <Button size="sm" variant="outline" onClick={handleOpenCreate}>
                                 <Plus data-icon="inline-start" />
-                                <span>Add a task</span>
+                                <span>Create Task</span>
                             </Button>
                         </EmptyContent>
                     </Empty>
                 ) : (
-                    <div className="border border-border/80 rounded-xl bg-card overflow-hidden divide-y divide-border/50 shadow-2xs">
-                        {rows.map((r) => (
-                            <TaskRow
-                                key={r.task.id}
-                                task={r.task}
-                                recurringState={r.recurringState}
-                                onEdit={handleOpenEdit}
-                                onAssign={handleOpenAssign}
-                            />
-                        ))}
-                    </div>
+                    <Card className="shadow-2xs border-border/80 overflow-hidden gap-0 p-0">
+                        <CardContent className="p-0 flex flex-col gap-0">
+                            {rows.map((r, index) => (
+                                <TaskRow
+                                    key={r.task.id}
+                                    task={r.task}
+                                    recurringState={r.recurringState}
+                                    onEdit={handleOpenEdit}
+                                    onAssign={handleOpenAssign}
+                                    onCompleted={handleTaskCompleted}
+                                    showDivider={index < rows.length - 1}
+                                />
+                            ))}
+                        </CardContent>
+                    </Card>
                 )}
-            </div>
+            </section>
 
             <AddTaskDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} taskToEdit={taskToEdit} />
 

@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Clock, MoreHorizontal, MapPin, XCircle, CheckCircle2 } from "lucide-react";
+import * as React from "react";
+import { MoreHorizontal, CalendarPlus, XCircle, CheckCircle2 } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,19 +18,16 @@ import { AssignToSlotSheet } from "./AssignToSlotSheet";
 
 interface DayAssignmentRowProps {
     assignment: TaskAssignment;
-    priorCompletionCount: number; // needed for recurring cycle_number when marking done
+    priorCompletionCount: number;
 }
 
-// Row for a day-level task — used in Today's "unslotted" section and the
-// Week day panel's assignment list (§11). Shows "place in slot" when
-// unslotted, and lets you remove from slot/day or mark done.
 export function DayAssignmentRow({ assignment, priorCompletionCount }: DayAssignmentRowProps) {
     const markDone = useMarkAssignmentDone();
     const unassignFromSlot = useUnassignFromSlot();
     const unassignFromDay = useUnassignFromDay();
 
-    const [isSlotSheetOpen, setIsSlotSheetOpen] = useState(false);
-    const [isLocallyDone, setIsLocallyDone] = useState(false);
+    const [isSlotSheetOpen, setIsSlotSheetOpen] = React.useState(false);
+    const [isLocallyDone, setIsLocallyDone] = React.useState(false);
 
     const task = assignment.task;
     if (!task) return null;
@@ -56,116 +52,86 @@ export function DayAssignmentRow({ assignment, priorCompletionCount }: DayAssign
     return (
         <div
             className={cn(
-                "group flex items-center justify-between gap-2 px-3 py-2.5 transition-colors duration-150 hover:bg-muted/40",
-                isDone && "opacity-50 hover:bg-transparent",
+                "group flex items-center justify-between gap-3 p-3.5 px-4 transition-colors hover:bg-accent/40",
+                isDone && "opacity-50",
             )}
         >
-            <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
                 <Checkbox
                     checked={isDone}
                     onCheckedChange={(checked) => handleCheckboxChange(Boolean(checked))}
-                    aria-label={`Mark "${task.title}" as done`}
-                    className="size-4.5 rounded transition-transform active:scale-95 shrink-0"
+                    aria-label={`Mark ${task.title} complete`}
+                    className="size-4 shrink-0"
                 />
 
-                <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                <div className="flex flex-col min-w-0 flex-1">
                     <span
                         className={cn(
-                            "text-xs font-medium transition-colors truncate",
-                            isDone ? "line-through text-muted-foreground font-normal" : "text-foreground",
+                            "text-sm truncate",
+                            isDone ? "line-through text-muted-foreground font-normal" : "font-medium text-foreground",
                         )}
                     >
                         {task.title}
                     </span>
 
-                    {task.category && (
-                        <Badge
-                            variant="secondary"
-                            className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full gap-1"
-                        >
-                            {task.category.color && (
-                                <span
-                                    className="size-1.5 rounded-full shrink-0"
-                                    style={{ backgroundColor: task.category.color }}
-                                />
-                            )}
-                            <span className="truncate max-w-[80px]">{task.category.name}</span>
-                        </Badge>
-                    )}
-
-                    {task.estimated_minutes && (
-                        <Badge
-                            variant="secondary"
-                            className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full gap-1"
-                        >
-                            <Clock data-icon="inline-start" />
-                            <span>{task.estimated_minutes}m</span>
-                        </Badge>
-                    )}
-
-                    {!isSlotted && !isDone && (
-                        <Badge
-                            variant="outline"
-                            className="text-[10px] font-normal px-1.5 h-4.5 text-muted-foreground shrink-0 rounded-full border-dashed"
-                        >
-                            Unslotted
-                        </Badge>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground font-normal">
+                        {task.category && <span className="truncate max-w-[120px]">{task.category.name}</span>}
+                        {task.category && task.estimated_minutes && <span>•</span>}
+                        {task.estimated_minutes && <span className="font-mono">{task.estimated_minutes}m</span>}
+                    </div>
                 </div>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
                 {!isSlotted && !isDone && (
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsSlotSheetOpen(true)}
-                        className="h-6.5 px-2 text-[11px] font-normal gap-1"
+                        className="h-7 text-xs px-2.5 gap-1.5"
                     >
-                        <MapPin data-icon="inline-start" />
-                        <span>Place in slot</span>
+                        <CalendarPlus data-icon="inline-start" />
+                        <span>Slot</span>
                     </Button>
                 )}
 
-                <div className="opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7 text-muted-foreground hover:text-foreground"
-                                    aria-label="More options"
-                                />
-                            }
-                        >
-                            <MoreHorizontal />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuGroup>
-                                {isSlotted && (
-                                    <DropdownMenuItem onClick={() => unassignFromSlot.mutate(assignment.id)}>
-                                        <XCircle data-icon="inline-start" />
-                                        Unassign from slot
-                                    </DropdownMenuItem>
-                                )}
-                                {!isDone && (
-                                    <DropdownMenuItem onClick={() => handleCheckboxChange(true)}>
-                                        <CheckCircle2 data-icon="inline-start" />
-                                        Mark done
-                                    </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                    onClick={() => unassignFromDay.mutate(assignment.id)}
-                                    className="text-destructive focus:text-destructive"
-                                >
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                aria-label={`Options for ${task.title}`}
+                            >
+                                <MoreHorizontal />
+                            </Button>
+                        }
+                    />
+                    <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuGroup>
+                            {isSlotted && (
+                                <DropdownMenuItem onClick={() => unassignFromSlot.mutate(assignment.id)}>
                                     <XCircle data-icon="inline-start" />
-                                    Remove from day
+                                    <span>Unassign slot</span>
                                 </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                            )}
+                            {!isDone && (
+                                <DropdownMenuItem onClick={() => handleCheckboxChange(true)}>
+                                    <CheckCircle2 data-icon="inline-start" />
+                                    <span>Mark done</span>
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                                onClick={() => unassignFromDay.mutate(assignment.id)}
+                                className="text-destructive focus:text-destructive"
+                            >
+                                <XCircle data-icon="inline-start" />
+                                <span>Remove from day</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             {isSlotSheetOpen && (
